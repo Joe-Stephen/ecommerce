@@ -8,20 +8,22 @@ const router_1 = __importDefault(require("./modules/router/router"));
 const db_1 = __importDefault(require("./modules/config/db"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const userModel_1 = __importDefault(require("./modules/user/userModel"));
+const imageModel_1 = __importDefault(require("./modules/product/imageModel"));
 dotenv_1.default.config();
 const PORT = 3000 || process.env.PORT;
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
 app.use("/", router_1.default);
-app.use((err, req, res, next) => {
-    res.status(500).json({ message: err.message });
-});
 db_1.default
     .sync()
     .then(() => {
     console.log("Image model synchronized");
     return userModel_1.default.sync();
+})
+    .then(() => {
+    console.log("Image model synchronized");
+    return imageModel_1.default.sync();
 })
     .then(() => {
     console.log("User model synchronized");

@@ -1,32 +1,26 @@
 import express, { Application } from "express";
-import userRouter from "./modules/router/router";
+import router from "./modules/router/router";
 import sequelize from "./modules/config/db";
 import dotenv from "dotenv";
 import User from "./modules/user/userModel";
+import Image from "./modules/product/imageModel";
 
 dotenv.config();
 const PORT = 3000 || process.env.PORT;
 const app: Application = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use("/", userRouter);
-
-app.use(
-  (
-    err: Error,
-    req: express.Request,
-    res: express.Response,
-    next: express.NextFunction
-  ) => {
-    res.status(500).json({ message: err.message });
-  }
-);
+app.use("/", router);
 
 sequelize
   .sync()
   .then(() => {
     console.log("Image model synchronized");
     return User.sync();
+  })
+  .then(() => {
+    console.log("Image model synchronized");
+    return Image.sync();
   })
   .then(() => {
     console.log("User model synchronized");
