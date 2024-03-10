@@ -14,19 +14,19 @@ Product.init({
         primaryKey: true,
     },
     name: {
-        type: new sequelize_1.DataTypes.STRING(128),
+        type: sequelize_1.DataTypes.STRING(128),
         allowNull: false,
     },
     brand: {
-        type: new sequelize_1.DataTypes.STRING(128),
+        type: sequelize_1.DataTypes.STRING(128),
         allowNull: false,
     },
     description: {
-        type: new sequelize_1.DataTypes.STRING(128),
+        type: sequelize_1.DataTypes.STRING(128),
         allowNull: false,
     },
     category: {
-        type: new sequelize_1.DataTypes.STRING(128),
+        type: sequelize_1.DataTypes.STRING(128),
         allowNull: false,
     },
     regular_price: {
@@ -37,8 +37,8 @@ Product.init({
         type: sequelize_1.DataTypes.INTEGER.UNSIGNED,
         allowNull: false,
     },
-    status: {
-        type: new sequelize_1.DataTypes.BOOLEAN,
+    isBlocked: {
+        type: sequelize_1.DataTypes.BOOLEAN,
         defaultValue: false,
     },
 }, {

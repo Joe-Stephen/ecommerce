@@ -75,10 +75,23 @@ export const loginUser: RequestHandler = async (req, res, next) => {
 };
 
 export const getAllProducts: RequestHandler = async (req, res, next) => {
-  const products = await Product.findAll();
-  return res
-    .status(200)
-    .json({ message: "Products fetched successfully.", data: products });
+  try {
+    //finding all products
+    const products = await Product.findAll({where:{isBlocked:false},
+      include: [{ model: Image, attributes: ["image"] }],
+    });
+    //formatting images array
+    const allProducts = products.map((product: any) => {
+      const imageNames = product.Images.map((image: any) => image.image);
+      return { ...product.toJSON(), Images: imageNames }; // Replace Images with imageUrls
+    });
+    return res
+      .status(200)
+      .json({ message: "Products fetched successfully.", data: allProducts });
+  } catch (error) {
+    console.error("Error in finding all products function :", error);
+    return res.status(400).json({ message: "Couldn't load all products." });
+  }
 };
 
 //JWT generator function
@@ -169,5 +182,3 @@ export const updateUser: RequestHandler = async (req, res, next) => {
     .status(200)
     .json({ message: "User updated successfully.", data: updateUser });
 };
-
-

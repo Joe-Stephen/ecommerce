@@ -86,10 +86,24 @@ const loginUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function
 });
 exports.loginUser = loginUser;
 const getAllProducts = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    const products = yield productModel_1.default.findAll();
-    return res
-        .status(200)
-        .json({ message: "Products fetched successfully.", data: products });
+    try {
+        //finding all products
+        const products = yield productModel_1.default.findAll({ where: { isBlocked: false },
+            include: [{ model: imageModel_1.default, attributes: ["image"] }],
+        });
+        //formatting images array
+        const allProducts = products.map((product) => {
+            const imageNames = product.Images.map((image) => image.image);
+            return Object.assign(Object.assign({}, product.toJSON()), { Images: imageNames }); // Replace Images with imageUrls
+        });
+        return res
+            .status(200)
+            .json({ message: "Products fetched successfully.", data: allProducts });
+    }
+    catch (error) {
+        console.error("Error in finding all products function :", error);
+        return res.status(400).json({ message: "Couldn't load all products." });
+    }
 });
 exports.getAllProducts = getAllProducts;
 //JWT generator function

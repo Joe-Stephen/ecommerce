@@ -21,12 +21,9 @@ app.use("/", router);
 
 //syncing models and starting server
 sequelize
-  .sync()
+  .sync({ force: false })
   .then(() => {
     console.log("Models synchronized successfully.");
-    return User.sync(), Image.sync(), Product.sync();
-  })
-  .then(() => {
     app.listen(PORT, () => {
       console.log(`Server is running on http://localhost:${PORT}`);
     });

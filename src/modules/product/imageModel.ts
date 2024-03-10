@@ -1,5 +1,6 @@
 import { DataTypes, Model } from "sequelize";
 import sequelize from "../config/db";
+import Product from "./productModel";
 
 class Image extends Model {
   public id!: number;
@@ -18,11 +19,11 @@ Image.init(
       primaryKey: true,
     },
     productId: {
-      type: new DataTypes.INTEGER(),
+      type: DataTypes.INTEGER.UNSIGNED,
       allowNull: false,
     },
     image: {
-      type: new DataTypes.STRING(128),
+      type: DataTypes.STRING(128),
       allowNull: false,
     },
   },
@@ -31,5 +32,9 @@ Image.init(
     sequelize,
   }
 );
+
+// associations 
+Image.belongsTo(Product, { foreignKey: 'productId' });
+Product.hasMany(Image, { foreignKey: 'productId' });
 
 export default Image;

@@ -14,15 +14,15 @@ User.init({
         primaryKey: true,
     },
     username: {
-        type: new sequelize_1.DataTypes.STRING(128),
+        type: sequelize_1.DataTypes.STRING(128),
         allowNull: false,
     },
     email: {
-        type: new sequelize_1.DataTypes.STRING(128),
+        type: sequelize_1.DataTypes.STRING(128),
         allowNull: false,
     },
     password: {
-        type: new sequelize_1.DataTypes.STRING(128),
+        type: sequelize_1.DataTypes.STRING(128),
         allowNull: false,
     },
 }, {

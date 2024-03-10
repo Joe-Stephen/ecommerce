@@ -44,24 +44,53 @@ export const addProduct: RequestHandler = async (req, res, next) => {
   try {
     console.log("data in body :", req.body);
     console.log("files in upload :", req.files);
-    const {name, brand, description, category, regular_price, selling_price}=req.body;
+    const { name, brand, description, category, regular_price, selling_price } =
+      req.body;
 
-    if(!name || !brand || !description || !category || !regular_price || !selling_price){
+    if (
+      !name ||
+      !brand ||
+      !description ||
+      !category ||
+      !regular_price ||
+      !selling_price
+    ) {
       console.log("Please provide all the details.");
-      return res.status(400).json({ message: "Please provide all the details." });      
+      return res
+        .status(400)
+        .json({ message: "Please provide all the details." });
+    }
+    const formData = {
+      name: name.trim(),
+      brand: brand.trim(),
+      description: description.trim(),
+      category: category.trim(),
+      regular_price: parseInt(regular_price),
+      selling_price: parseInt(selling_price),
+    };
+    //name validation rules
+    const nameRegex = /^[A-Za-z0-9\s]+$/;
+    if (!nameRegex.test(formData.name)) {
+      return res.status(400).json({ message: "Invalid name." });
+    }
+    const existingProduct = await Product.findOne({ where: { name: name } });
+    if (existingProduct) {
+      return res
+        .status(400)
+        .json({ message: "A product with this name already exists." });
     }
 
-
+    //price validations
+    if (formData.selling_price > formData.regular_price) {
+      return res
+        .status(400)
+        .json({
+          message: "Selling price shouldn't be greater than regular price.",
+        });
+    }
 
     //creating new product
-    const newProduct = await Product.create({
-      name: req.body.name,
-      brand: req.body.brand,
-      description: req.body.description,
-      category: req.body.category,
-      regular_price: req.body.regular_price,
-      selling_price: req.body.selling_price,
-    });
+    const newProduct = await Product.create( formData );
 
     //uploading image files
     const promises = (req.files as File[] | undefined)?.map(

@@ -9,7 +9,7 @@ class Product extends Model {
   public category!: string;
   public regular_price!: number;
   public selling_price!: number;
-  public status!: boolean;
+  public isBlocked!: boolean;
   // timestamps!
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
@@ -23,21 +23,21 @@ Product.init(
       primaryKey: true,
     },
     name: {
-      type: new DataTypes.STRING(128),
+      type: DataTypes.STRING(128),
       allowNull: false,
     },
     brand: {
-      type: new DataTypes.STRING(128),
+      type: DataTypes.STRING(128),
       allowNull: false,
     },
 
     description: {
-        type: new DataTypes.STRING(128),
+        type: DataTypes.STRING(128),
         allowNull: false,
       },
 
       category: {
-        type: new DataTypes.STRING(128),
+        type: DataTypes.STRING(128),
         allowNull: false,
       },
       regular_price: {
@@ -48,8 +48,8 @@ Product.init(
         type: DataTypes.INTEGER.UNSIGNED,
         allowNull: false,
       },
-      status: {
-        type: new DataTypes.BOOLEAN,
+      isBlocked: {
+        type: DataTypes.BOOLEAN,
         defaultValue: false,
       },
   },
