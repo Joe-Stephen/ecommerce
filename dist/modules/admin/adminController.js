@@ -47,11 +47,13 @@ const resetPassword = (req, res, next) => __awaiter(void 0, void 0, void 0, func
     }
 });
 exports.resetPassword = resetPassword;
+//creating new product
 const addProduct = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     try {
         console.log("data in body :", req.body);
         console.log("files in upload :", req.files);
+        //creating new product
         const newProduct = yield productModel_1.default.create({
             name: req.body.name,
             brand: req.body.brand,
@@ -60,6 +62,7 @@ const addProduct = (req, res, next) => __awaiter(void 0, void 0, void 0, functio
             regular_price: req.body.regular_price,
             selling_price: req.body.selling_price,
         });
+        //uploading image files
         const promises = (_a = req.files) === null || _a === void 0 ? void 0 : _a.map((file) => __awaiter(void 0, void 0, void 0, function* () {
             yield imageModel_1.default.create({
                 productId: newProduct.id,
@@ -69,11 +72,13 @@ const addProduct = (req, res, next) => __awaiter(void 0, void 0, void 0, functio
         if (promises) {
             yield Promise.all(promises);
         }
-        res.status(200).send("Product added successfully");
+        res
+            .status(200)
+            .json({ message: "Product added successfully", data: newProduct });
     }
     catch (error) {
-        console.error("Error uploading images:", error);
-        res.status(500).send("Error uploading images");
+        console.error("Error creating product:", error);
+        res.status(500).send("Error creating product");
     }
 });
 exports.addProduct = addProduct;

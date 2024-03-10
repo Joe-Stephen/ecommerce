@@ -12,11 +12,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateUser = exports.getUserById = exports.getAllUsers = exports.deleteUser = exports.addProduct = exports.resetPassword = exports.loginUser = exports.createUser = void 0;
+exports.updateUser = exports.getUserById = exports.getAllUsers = exports.deleteUser = exports.addProduct = exports.resetPassword = exports.getAllProducts = exports.loginUser = exports.createUser = void 0;
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const userModel_1 = __importDefault(require("../user/userModel"));
 const imageModel_1 = __importDefault(require("../product/imageModel"));
+const productModel_1 = __importDefault(require("../product/productModel"));
 const createUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     const { username, email, password } = req.body;
     if (!username || !email || !password) {
@@ -84,6 +85,13 @@ const loginUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function
     }
 });
 exports.loginUser = loginUser;
+const getAllProducts = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    const products = yield productModel_1.default.findAll();
+    return res
+        .status(200)
+        .json({ message: "Products fetched successfully.", data: products });
+});
+exports.getAllProducts = getAllProducts;
 //JWT generator function
 const generateToken = (email) => {
     return jsonwebtoken_1.default.sign({ email }, process.env.JWT_SECRET, {

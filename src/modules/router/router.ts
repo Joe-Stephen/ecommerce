@@ -6,6 +6,7 @@ import {
   createUser,
   loginUser,
   resetPassword,
+  getAllProducts,
   getAllUsers,
   getUserById,
   deleteUser,
@@ -23,6 +24,7 @@ import verifyUser from "../user/userAuthentication";
 router.post("/", createUser);
 router.post("/login", loginUser);
 router.patch("/resetPassword", verifyUser, resetPassword);
+router.get("/products", getAllProducts);
 router.get("/", getAllUsers);
 router.get("/:id", getUserById);
 router.put("/:id", updateUser);

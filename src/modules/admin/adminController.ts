@@ -44,6 +44,14 @@ export const addProduct: RequestHandler = async (req, res, next) => {
   try {
     console.log("data in body :", req.body);
     console.log("files in upload :", req.files);
+    const {name, brand, description, category, regular_price, selling_price}=req.body;
+
+    if(!name || !brand || !description || !category || !regular_price || !selling_price){
+      console.log("Please provide all the details.");
+      return res.status(400).json({ message: "Please provide all the details." });      
+    }
+
+
 
     //creating new product
     const newProduct = await Product.create({

@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 
 import User from "../user/userModel";
 import Image from "../product/imageModel";
+import Product from "../product/productModel";
 
 export const createUser: RequestHandler = async (req, res, next) => {
   const { username, email, password } = req.body;
@@ -71,6 +72,13 @@ export const loginUser: RequestHandler = async (req, res, next) => {
     console.error("Error in login function :", error);
     return res.status(400).json({ message: "Login unsuccessfull." });
   }
+};
+
+export const getAllProducts: RequestHandler = async (req, res, next) => {
+  const products = await Product.findAll();
+  return res
+    .status(200)
+    .json({ message: "Products fetched successfully.", data: products });
 };
 
 //JWT generator function
@@ -161,3 +169,5 @@ export const updateUser: RequestHandler = async (req, res, next) => {
     .status(200)
     .json({ message: "User updated successfully.", data: updateUser });
 };
+
+
