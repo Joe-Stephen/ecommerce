@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateUser = exports.getUserById = exports.getAllUsers = exports.deleteUser = exports.addProduct = exports.resetPassword = exports.getUserCart = exports.decreaseCartQuantity = exports.addToCart = exports.getAllProducts = exports.loginUser = exports.createUser = void 0;
+exports.updateUser = exports.getUserById = exports.getAllUsers = exports.deleteUser = exports.addProduct = exports.resetPassword = exports.getUserCart = exports.removeCartItem = exports.decreaseCartQuantity = exports.addToCart = exports.getAllProducts = exports.loginUser = exports.createUser = void 0;
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const userModel_1 = __importDefault(require("../user/userModel"));
@@ -193,6 +193,37 @@ const decreaseCartQuantity = (req, res, next) => __awaiter(void 0, void 0, void 
     }
 });
 exports.decreaseCartQuantity = decreaseCartQuantity;
+const removeCartItem = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        console.log(req.body);
+        let userCart = yield cartModel_1.default.findOne({ where: { userId: 1 } });
+        if (!userCart) {
+            console.log("No cart found.");
+            return res.status(400).json({ message: "No cart found." });
+        }
+        else {
+            const existingProduct = yield cartProductsModel_1.default.findOne({
+                where: { cartId: 1, productId: 3 },
+            });
+            if (!existingProduct) {
+                console.log("This product is not in the cart.");
+                return res
+                    .status(400)
+                    .json({ message: "This product is not in the cart." });
+            }
+            else if (existingProduct) {
+                yield cartProductsModel_1.default.destroy({ where: { cartId: 1, productId: 3 } });
+                console.log("Product has been removed.");
+                return res.status(200).json({ message: "Product has been removed." });
+            }
+        }
+    }
+    catch (error) {
+        console.error("Error in user remove cart item function :", error);
+        return res.status(400).json({ message: "Couldn't remove cart item." });
+    }
+});
+exports.removeCartItem = removeCartItem;
 const getUserCart = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const userWithCart = yield userModel_1.default.findByPk(1, {
@@ -203,27 +234,19 @@ const getUserCart = (req, res, next) => __awaiter(void 0, void 0, void 0, functi
                 },
             ],
         });
-        console.log("user cart=", userWithCart === null || userWithCart === void 0 ? void 0 : userWithCart.dataValues.Cart.dataValues.Products);
-        const total = (userWithCart === null || userWithCart === void 0 ? void 0 : userWithCart.dataValues.Cart.dataValues.Products).forEach((product) => {
-            console.log("the rate of product :", product.selling_price);
-        });
         const productsInCart = userWithCart === null || userWithCart === void 0 ? void 0 : userWithCart.dataValues.Cart.dataValues.Products;
         console.log("The products in cart object :", productsInCart);
         const productArray = productsInCart.map((product) => product.dataValues);
         let grandTotal = 0;
         productArray.forEach((product) => {
-            product.subTotal = (product.selling_price) * (product.CartProducts.dataValues.quantity);
+            product.subTotal =
+                product.selling_price * product.CartProducts.dataValues.quantity;
             grandTotal += product.subTotal;
         });
-        console.log("product array after two foreach functions :", productArray);
-        console.log("grand total :", grandTotal);
-        console.log("User cart fetched successfully.");
-        return res
-            .status(200)
-            .json({
+        return res.status(200).json({
             message: "Product has been added to cart.",
             cartProducts: userWithCart === null || userWithCart === void 0 ? void 0 : userWithCart.dataValues.Cart.dataValues.Products,
-            cartGrandTotal: grandTotal
+            cartGrandTotal: grandTotal,
         });
     }
     catch (error) {

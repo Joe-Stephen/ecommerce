@@ -175,6 +175,34 @@ export const decreaseCartQuantity: RequestHandler = async (req, res, next) => {
   }
 };
 
+export const removeCartItem: RequestHandler = async (req, res, next) => {
+  try {
+    console.log(req.body);
+    let userCart = await Cart.findOne({ where: { userId: 1 } });
+    if (!userCart) {
+      console.log("No cart found.");
+      return res.status(400).json({ message: "No cart found." });
+    } else {
+      const existingProduct = await CartProducts.findOne({
+        where: { cartId: 1, productId: 3 },
+      });
+      if (!existingProduct) {
+        console.log("This product is not in the cart.");
+        return res
+          .status(400)
+          .json({ message: "This product is not in the cart." });
+      } else if (existingProduct) {
+        await CartProducts.destroy({ where: { cartId: 1, productId: 3 } });
+        console.log("Product has been removed.");
+        return res.status(200).json({ message: "Product has been removed." });
+      }
+    }
+  } catch (error) {
+    console.error("Error in user remove cart item function :", error);
+    return res.status(400).json({ message: "Couldn't remove cart item." });
+  }
+};
+
 export const getUserCart: RequestHandler = async (req, res, next) => {
   try {
     const userWithCart = await User.findByPk(1, {

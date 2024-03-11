@@ -13,6 +13,8 @@ import {
   updateUser,
   getUserCart,
   addToCart,
+  decreaseCartQuantity,
+  removeCartItem,
 } from "../user/userController";
 
 //admin functions
@@ -29,6 +31,8 @@ router.patch("/resetPassword", verifyUser, resetPassword);
 router.get("/products", getAllProducts);
 router.get("/cart", getUserCart);
 router.post("/cart", addToCart);
+router.patch("/decreaseCartQuantity", decreaseCartQuantity);
+router.delete("/removeCartItem", removeCartItem);
 router.get("/", getAllUsers);
 router.get("/:id", getUserById);
 router.put("/:id", updateUser);

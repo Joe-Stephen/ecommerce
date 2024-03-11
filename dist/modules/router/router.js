@@ -19,6 +19,8 @@ router.patch("/resetPassword", userAuthentication_1.default, userController_1.re
 router.get("/products", userController_1.getAllProducts);
 router.get("/cart", userController_1.getUserCart);
 router.post("/cart", userController_1.addToCart);
+router.patch("/decreaseCartQuantity", userController_1.decreaseCartQuantity);
+router.delete("/removeCartItem", userController_1.removeCartItem);
 router.get("/", userController_1.getAllUsers);
 router.get("/:id", userController_1.getUserById);
 router.put("/:id", userController_1.updateUser);
