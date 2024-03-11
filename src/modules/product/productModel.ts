@@ -1,11 +1,13 @@
 import { DataTypes, Model } from "sequelize";
 import sequelize from "../config/db";
+import Cart from "../cart/cartModel";
+import CartProducts from "../cart/cartProductsModel";
 
 class Product extends Model {
   public id!: number;
   public name!: string;
   public brand!: string;
-  public descreption!: string;
+  public description!: string;
   public category!: string;
   public regular_price!: number;
   public selling_price!: number;
@@ -30,33 +32,33 @@ Product.init(
       type: DataTypes.STRING(128),
       allowNull: false,
     },
-
     description: {
-        type: DataTypes.STRING(128),
-        allowNull: false,
-      },
-
-      category: {
-        type: DataTypes.STRING(128),
-        allowNull: false,
-      },
-      regular_price: {
-        type: DataTypes.INTEGER.UNSIGNED,
-        allowNull: false,
-      },
-      selling_price: {
-        type: DataTypes.INTEGER.UNSIGNED,
-        allowNull: false,
-      },
-      isBlocked: {
-        type: DataTypes.BOOLEAN,
-        defaultValue: false,
-      },
+      type: DataTypes.STRING(128),
+      allowNull: false,
+    },
+    category: {
+      type: DataTypes.STRING(128),
+      allowNull: false,
+    },
+    regular_price: {
+      type: DataTypes.INTEGER.UNSIGNED,
+      allowNull: false,
+    },
+    selling_price: {
+      type: DataTypes.INTEGER.UNSIGNED,
+      allowNull: false,
+    },
+    isBlocked: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
   },
   {
     tableName: "products",
     sequelize,
   }
 );
+
+// associations
 
 export default Product;

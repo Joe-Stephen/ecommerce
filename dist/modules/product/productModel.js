@@ -45,4 +45,5 @@ Product.init({
     tableName: "products",
     sequelize: db_1.default,
 });
+// associations
 exports.default = Product;

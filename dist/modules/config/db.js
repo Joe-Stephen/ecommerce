@@ -5,6 +5,6 @@ const sequelize_1 = require("sequelize");
 const sequelize = new sequelize_1.Sequelize("ecommerce", "root", "Joekkuttan@123", {
     dialect: "mysql",
     host: "localhost",
-    logging: false
+    logging: console.log
 });
 exports.default = sequelize;

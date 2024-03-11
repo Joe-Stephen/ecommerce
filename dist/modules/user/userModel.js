@@ -25,6 +25,10 @@ User.init({
         type: sequelize_1.DataTypes.STRING(128),
         allowNull: false,
     },
+    isAdmin: {
+        type: sequelize_1.DataTypes.BOOLEAN,
+        defaultValue: false,
+    }
 }, {
     tableName: "users",
     sequelize: db_1.default,

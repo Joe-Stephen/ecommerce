@@ -17,6 +17,8 @@ router.post("/", userController_1.createUser);
 router.post("/login", userController_1.loginUser);
 router.patch("/resetPassword", userAuthentication_1.default, userController_1.resetPassword);
 router.get("/products", userController_1.getAllProducts);
+router.get("/cart", userController_1.getUserCart);
+router.post("/cart", userController_1.addToCart);
 router.get("/", userController_1.getAllUsers);
 router.get("/:id", userController_1.getUserById);
 router.put("/:id", userController_1.updateUser);

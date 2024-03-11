@@ -11,6 +11,8 @@ import {
   getUserById,
   deleteUser,
   updateUser,
+  getUserCart,
+  addToCart,
 } from "../user/userController";
 
 //admin functions
@@ -25,6 +27,8 @@ router.post("/", createUser);
 router.post("/login", loginUser);
 router.patch("/resetPassword", verifyUser, resetPassword);
 router.get("/products", getAllProducts);
+router.get("/cart", getUserCart);
+router.post("/cart", addToCart);
 router.get("/", getAllUsers);
 router.get("/:id", getUserById);
 router.put("/:id", updateUser);

@@ -33,8 +33,6 @@ Image.init(
   }
 );
 
-// associations 
-Image.belongsTo(Product, { foreignKey: 'productId' });
-Product.hasMany(Image, { foreignKey: 'productId' });
+
 
 export default Image;
