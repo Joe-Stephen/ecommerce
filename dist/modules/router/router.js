@@ -22,6 +22,7 @@ router.post("/cart", userController_1.addToCart);
 router.patch("/decreaseCartQuantity", userController_1.decreaseCartQuantity);
 router.delete("/removeCartItem", userController_1.removeCartItem);
 router.get("/search", userController_1.searchProducts);
+router.get("/sort", userController_1.sortProducts);
 router.get("/", userController_1.getAllUsers);
 router.get("/:id", userController_1.getUserById);
 router.put("/:id", userController_1.updateUser);

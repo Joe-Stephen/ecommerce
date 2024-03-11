@@ -1,5 +1,5 @@
 import { RequestHandler } from "express";
-import {Op} from "sequelize";
+import { Op } from "sequelize";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
@@ -80,13 +80,13 @@ export const loginUser: RequestHandler = async (req, res, next) => {
 export const getAllProducts: RequestHandler = async (req, res, next) => {
   try {
     //pagination config
-    const page:any=req.query.page;
-    const count:number=5;
-    const skip:number=(parseInt(page)-1)*count;
+    const page: any = req.query.page;
+    const count: number = 5;
+    const skip: number = (parseInt(page) - 1) * count;
     //finding all products
     const products = await Product.findAll({
-      limit:count,
-      offset:skip,
+      limit: count,
+      offset: skip,
       where: { isBlocked: false },
       include: [{ model: Image, attributes: ["image"] }],
     });
@@ -107,11 +107,11 @@ export const getAllProducts: RequestHandler = async (req, res, next) => {
 export const searchProducts: RequestHandler = async (req, res, next) => {
   try {
     //pagination config
-    const searchKey:any=req.query.searchKey;
+    const searchKey: any = req.query.searchKey;
 
     //search all products
     const products = await Product.findAll({
-      where: {  name:{[Op.like]:`%${searchKey}%`} },
+      where: { isBlocked: false, name: { [Op.like]: `%${searchKey}%` } },
       include: [{ model: Image, attributes: ["image"] }],
     });
     //formatting images array
@@ -125,6 +125,41 @@ export const searchProducts: RequestHandler = async (req, res, next) => {
   } catch (error) {
     console.error("Error in finding all products function :", error);
     return res.status(400).json({ message: "Couldn't load all products." });
+  }
+};
+
+export const sortProducts: RequestHandler = async (req, res, next) => {
+  try {
+    const sortType: any = req.query.sortType;
+    //search all products
+    let products: any;
+    if (sortType === "highToLow") {
+      products = await Product.findAll({
+        where: { isBlocked: false },
+        order: [["selling_price", "DESC"]],
+        include: [{ model: Image, attributes: ["image"] }],
+      });
+    } else if (sortType === "lowToHigh") {
+      products = await Product.findAll({
+        where: { isBlocked: false },
+        order: [["selling_price", "ASC"]],
+        include: [{ model: Image, attributes: ["image"] }],
+      });
+    }else{
+      console.log("The required sort type is not defined.");
+      return res.status(400).json({ message: "The required sort type is not defined." });
+    }
+    //formatting images array
+    const allProducts = products.map((product: any) => {
+      const imageNames = product.Images.map((image: any) => image.image);
+      return { ...product.toJSON(), Images: imageNames };
+    });
+    return res
+      .status(200)
+      .json({ message: "Sort applied successfully.", data: allProducts });
+  } catch (error) {
+    console.error("Couldn't sort the products.", error);
+    return res.status(400).json({ message: "Couldn't sort the products." });
   }
 };
 

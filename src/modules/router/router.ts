@@ -16,6 +16,7 @@ import {
   decreaseCartQuantity,
   removeCartItem,
   searchProducts,
+  sortProducts,
 } from "../user/userController";
 
 //admin functions
@@ -34,7 +35,8 @@ router.get("/cart", getUserCart);
 router.post("/cart", addToCart);
 router.patch("/decreaseCartQuantity", decreaseCartQuantity);
 router.delete("/removeCartItem", removeCartItem);
-router.get("/search", searchProducts)
+router.get("/search", searchProducts);
+router.get("/sort", sortProducts);
 router.get("/", getAllUsers);
 router.get("/:id", getUserById);
 router.put("/:id", updateUser);

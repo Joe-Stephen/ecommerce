@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateUser = exports.getUserById = exports.getAllUsers = exports.deleteUser = exports.addProduct = exports.resetPassword = exports.getUserCart = exports.removeCartItem = exports.decreaseCartQuantity = exports.addToCart = exports.searchProducts = exports.getAllProducts = exports.loginUser = exports.createUser = void 0;
+exports.updateUser = exports.getUserById = exports.getAllUsers = exports.deleteUser = exports.addProduct = exports.resetPassword = exports.getUserCart = exports.removeCartItem = exports.decreaseCartQuantity = exports.addToCart = exports.sortProducts = exports.searchProducts = exports.getAllProducts = exports.loginUser = exports.createUser = void 0;
 const sequelize_1 = require("sequelize");
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
@@ -122,7 +122,7 @@ const searchProducts = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
         const searchKey = req.query.searchKey;
         //search all products
         const products = yield productModel_1.default.findAll({
-            where: { name: { [sequelize_1.Op.like]: `%${searchKey}%` } },
+            where: { isBlocked: false, name: { [sequelize_1.Op.like]: `%${searchKey}%` } },
             include: [{ model: imageModel_1.default, attributes: ["image"] }],
         });
         //formatting images array
@@ -140,6 +140,44 @@ const searchProducts = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
     }
 });
 exports.searchProducts = searchProducts;
+const sortProducts = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const sortType = req.query.sortType;
+        //search all products
+        let products;
+        if (sortType === "highToLow") {
+            products = yield productModel_1.default.findAll({
+                where: { isBlocked: false },
+                order: [["selling_price", "DESC"]],
+                include: [{ model: imageModel_1.default, attributes: ["image"] }],
+            });
+        }
+        else if (sortType === "lowToHigh") {
+            products = yield productModel_1.default.findAll({
+                where: { isBlocked: false },
+                order: [["selling_price", "ASC"]],
+                include: [{ model: imageModel_1.default, attributes: ["image"] }],
+            });
+        }
+        else {
+            console.log("The required sort type is not defined.");
+            return res.status(400).json({ message: "The required sort type is not defined." });
+        }
+        //formatting images array
+        const allProducts = products.map((product) => {
+            const imageNames = product.Images.map((image) => image.image);
+            return Object.assign(Object.assign({}, product.toJSON()), { Images: imageNames });
+        });
+        return res
+            .status(200)
+            .json({ message: "Sort applied successfully.", data: allProducts });
+    }
+    catch (error) {
+        console.error("Couldn't sort the products.", error);
+        return res.status(400).json({ message: "Couldn't sort the products." });
+    }
+});
+exports.sortProducts = sortProducts;
 const addToCart = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         console.log(req.body);
