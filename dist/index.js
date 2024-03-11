@@ -58,14 +58,10 @@ imageModel_1.default.sync()
 });
 // associations
 imageModel_1.default.belongsTo(productModel_1.default, { foreignKey: "productId" });
+productModel_1.default.hasMany(imageModel_1.default, { foreignKey: "productId" });
 cartModel_1.default.belongsTo(userModel_1.default, { foreignKey: "userId" });
 cartModel_1.default.belongsToMany(productModel_1.default, { through: cartProductsModel_1.default });
 productModel_1.default.belongsToMany(cartModel_1.default, { through: cartProductsModel_1.default });
-// Product.belongsToMany(Cart, {through :CartProducts});
-// Cart.belongsToMany(Product, {through :CartProducts})
-// CartProducts.hasMany(Product, {foreignKey:"productId"});
-// CartProducts.belongsTo(Cart,{foreignKey:"cartId"});
-// Product.belongsToMany(CartProducts, { through: "CartProducts" });
 userModel_1.default.hasOne(cartModel_1.default, { foreignKey: "userId" });
 //syncing models and starting server
 // sequelize

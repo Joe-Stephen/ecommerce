@@ -89,8 +89,13 @@ const loginUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function
 exports.loginUser = loginUser;
 const getAllProducts = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
+        const page = req.query.page;
+        const count = 5;
+        const skip = (parseInt(page) - 1) * count;
         //finding all products
         const products = yield productModel_1.default.findAll({
+            limit: count,
+            offset: skip,
             where: { isBlocked: false },
             include: [{ model: imageModel_1.default, attributes: ["image"] }],
         });

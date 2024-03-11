@@ -78,8 +78,14 @@ export const loginUser: RequestHandler = async (req, res, next) => {
 
 export const getAllProducts: RequestHandler = async (req, res, next) => {
   try {
+    //pagination config
+    const page:any=req.query.page;
+    const count:number=5;
+    const skip:number=(parseInt(page)-1)*count;
     //finding all products
     const products = await Product.findAll({
+      limit:count,
+      offset:skip,
       where: { isBlocked: false },
       include: [{ model: Image, attributes: ["image"] }],
     });

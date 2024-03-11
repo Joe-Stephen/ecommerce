@@ -22,21 +22,21 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/", router);
 
 //cart syncing
-Cart.sync() 
+Cart.sync()
   .then(() => {
     console.log("Cart synchronized successfully.");
   })
   .catch((error) => {
     console.error("Error synchronizing cart model:", error);
   });
-  CartProducts.sync()
+CartProducts.sync()
   .then(() => {
     console.log("CartProduct synchronized successfully.");
   })
   .catch((error) => {
     console.error("Error synchronizing CartProduct model:", error);
   });
-User.sync() 
+User.sync()
   .then(() => {
     console.log("User synchronized successfully.");
   })
@@ -60,19 +60,11 @@ Image.sync()
 
 // associations
 Image.belongsTo(Product, { foreignKey: "productId" });
+Product.hasMany(Image, { foreignKey: "productId" });
 Cart.belongsTo(User, { foreignKey: "userId" });
-Cart.belongsToMany(Product,{through:CartProducts});
-Product.belongsToMany(Cart, {through :CartProducts});
-
-// Product.belongsToMany(Cart, {through :CartProducts});
-
-// Cart.belongsToMany(Product, {through :CartProducts})
-
-// CartProducts.hasMany(Product, {foreignKey:"productId"});
-// CartProducts.belongsTo(Cart,{foreignKey:"cartId"});
-
-// Product.belongsToMany(CartProducts, { through: "CartProducts" });
-User.hasOne(Cart,{foreignKey:"userId"});
+Cart.belongsToMany(Product, { through: CartProducts });
+Product.belongsToMany(Cart, { through: CartProducts });
+User.hasOne(Cart, { foreignKey: "userId" });
 
 //syncing models and starting server
 // sequelize
