@@ -12,7 +12,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateUser = exports.getUserById = exports.getAllUsers = exports.deleteUser = exports.addProduct = exports.resetPassword = exports.getUserCart = exports.removeCartItem = exports.decreaseCartQuantity = exports.addToCart = exports.getAllProducts = exports.loginUser = exports.createUser = void 0;
+exports.updateUser = exports.getUserById = exports.getAllUsers = exports.deleteUser = exports.addProduct = exports.resetPassword = exports.getUserCart = exports.removeCartItem = exports.decreaseCartQuantity = exports.addToCart = exports.searchProducts = exports.getAllProducts = exports.loginUser = exports.createUser = void 0;
+const sequelize_1 = require("sequelize");
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const userModel_1 = __importDefault(require("../user/userModel"));
@@ -89,6 +90,7 @@ const loginUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function
 exports.loginUser = loginUser;
 const getAllProducts = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
+        //pagination config
         const page = req.query.page;
         const count = 5;
         const skip = (parseInt(page) - 1) * count;
@@ -114,6 +116,30 @@ const getAllProducts = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
     }
 });
 exports.getAllProducts = getAllProducts;
+const searchProducts = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        //pagination config
+        const searchKey = req.query.searchKey;
+        //search all products
+        const products = yield productModel_1.default.findAll({
+            where: { name: { [sequelize_1.Op.like]: `%${searchKey}%` } },
+            include: [{ model: imageModel_1.default, attributes: ["image"] }],
+        });
+        //formatting images array
+        const allProducts = products.map((product) => {
+            const imageNames = product.Images.map((image) => image.image);
+            return Object.assign(Object.assign({}, product.toJSON()), { Images: imageNames }); // Replace Images with imageUrls
+        });
+        return res
+            .status(200)
+            .json({ message: "Products fetched successfully.", data: allProducts });
+    }
+    catch (error) {
+        console.error("Error in finding all products function :", error);
+        return res.status(400).json({ message: "Couldn't load all products." });
+    }
+});
+exports.searchProducts = searchProducts;
 const addToCart = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         console.log(req.body);

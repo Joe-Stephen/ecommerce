@@ -1,4 +1,5 @@
 import { RequestHandler } from "express";
+import {Op} from "sequelize";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
@@ -87,6 +88,30 @@ export const getAllProducts: RequestHandler = async (req, res, next) => {
       limit:count,
       offset:skip,
       where: { isBlocked: false },
+      include: [{ model: Image, attributes: ["image"] }],
+    });
+    //formatting images array
+    const allProducts = products.map((product: any) => {
+      const imageNames = product.Images.map((image: any) => image.image);
+      return { ...product.toJSON(), Images: imageNames }; // Replace Images with imageUrls
+    });
+    return res
+      .status(200)
+      .json({ message: "Products fetched successfully.", data: allProducts });
+  } catch (error) {
+    console.error("Error in finding all products function :", error);
+    return res.status(400).json({ message: "Couldn't load all products." });
+  }
+};
+
+export const searchProducts: RequestHandler = async (req, res, next) => {
+  try {
+    //pagination config
+    const searchKey:any=req.query.searchKey;
+
+    //search all products
+    const products = await Product.findAll({
+      where: {  name:{[Op.like]:`%${searchKey}%`} },
       include: [{ model: Image, attributes: ["image"] }],
     });
     //formatting images array
