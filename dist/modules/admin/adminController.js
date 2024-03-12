@@ -206,18 +206,36 @@ const getAllUsers = (req, res, next) => __awaiter(void 0, void 0, void 0, functi
 exports.getAllUsers = getAllUsers;
 //get all orders
 const getAllOrders = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log("all order function. called");
-    const allOrders = yield orderModel_1.default.findAll({ order: [["orderDate", "ASC"]] });
-    console.log("all orders are :", allOrders);
-    const ordersWithDetails = yield Promise.all(allOrders.map((order) => __awaiter(void 0, void 0, void 0, function* () {
-        const currProducts = yield orderProductsModel_1.default.findOne({ where: { orderId: order.id } });
-        console.log("curr products object :", currProducts);
-        return Object.assign(Object.assign({}, order.toJSON()), { products: currProducts });
-    })));
-    console.log("orders with details are completed :", ordersWithDetails);
-    return res
-        .status(200)
-        .json({ message: "Fetched all orders.", data: ordersWithDetails });
+    try {
+        const allOrders = yield orderModel_1.default.findAll({
+            include: [
+                {
+                    model: orderProductsModel_1.default,
+                    as: 'orderProducts',
+                },
+            ],
+            order: [["orderDate", "ASC"]],
+        });
+        console.log("all Orders are :", allOrders);
+        // const allOrders: Order[] = await Order.findAll({
+        //   order: [["orderDate", "ASC"]],
+        // });
+        // const ordersWithDetails = await Promise.all(
+        //   allOrders.map(async (order: any) => {
+        //     const currProducts = await OrderProducts.findOne({
+        //       where: { orderId: order.id },
+        //     });
+        //     return { ...order.toJSON(), products: currProducts };
+        //   })
+        // );
+        return res
+            .status(200)
+            .json({ message: "Fetched all orders.", data: allOrders });
+    }
+    catch (error) {
+        console.error("Error fetching all orders. :", error);
+        res.status(500).send("Error fetching all orders. ");
+    }
 });
 exports.getAllOrders = getAllOrders;
 //approving an order

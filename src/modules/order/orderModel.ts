@@ -7,7 +7,8 @@ class Order extends Model {
     public orderDate!: Date;
     public totalAmount!: number;
     public orderStatus!:string;
-    // timestamps!
+    public orderProductId!: number;
+        // timestamps!
     public readonly createdAt!: Date;
     public readonly updatedAt!: Date;
   }
@@ -34,6 +35,10 @@ class Order extends Model {
       orderStatus: {
         type: DataTypes.STRING(128),
         defaultValue: "To be approved",
+      },
+      orderProductId: { 
+        type: DataTypes.INTEGER.UNSIGNED,
+        allowNull: false,
       },
     },
     {

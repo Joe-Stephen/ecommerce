@@ -26,55 +26,55 @@ app.use("/", userRouter);
 app.use("/admin", adminRouter);
 
 //cart syncing
-Cart.sync()
-  .then(() => {
-    console.log("Cart synchronized successfully.");
-  })
-  .catch((error) => {
-    console.error("Error synchronizing cart model:", error);
-  });
-CartProducts.sync()
-  .then(() => {
-    console.log("CartProduct synchronized successfully.");
-  })
-  .catch((error) => {
-    console.error("Error synchronizing CartProduct model:", error);
-  });
-Order.sync()
-  .then(() => {
-    console.log("Order synchronized successfully.");
-  })
-  .catch((error) => {
-    console.error("Error synchronizing Order model:", error);
-  });
-  OrderProducts.sync()
-  .then(() => {
-    console.log("OrderProducts synchronized successfully.");
-  })
-  .catch((error) => {
-    console.error("Error synchronizing Image model:", error);
-  });
-User.sync()
-  .then(() => {
-    console.log("User synchronized successfully.");
-  })
-  .catch((error) => {
-    console.error("Error synchronizing cart model:", error);
-  });
-Product.sync()
-  .then(() => {
-    console.log("Product synchronized successfully.");
-  })
-  .catch((error) => {
-    console.error("Error synchronizing cart model:", error);
-  });
-Image.sync()
-  .then(() => {
-    console.log("Image synchronized successfully.");
-  })
-  .catch((error) => {
-    console.error("Error synchronizing Image model:", error);
-  });
+// Cart.sync()
+//   .then(() => {
+//     console.log("Cart synchronized successfully.");
+//   })
+//   .catch((error) => {
+//     console.error("Error synchronizing cart model:", error);
+//   });
+// CartProducts.sync()
+//   .then(() => {
+//     console.log("CartProduct synchronized successfully.");
+//   })
+//   .catch((error) => {
+//     console.error("Error synchronizing CartProduct model:", error);
+//   });
+// Order.sync()
+//   .then(() => {
+//     console.log("Order synchronized successfully.");
+//   })
+//   .catch((error) => {
+//     console.error("Error synchronizing Order model:", error);
+//   });
+//   OrderProducts.sync()
+//   .then(() => {
+//     console.log("OrderProducts synchronized successfully.");
+//   })
+//   .catch((error) => {
+//     console.error("Error synchronizing Image model:", error);
+//   });
+// User.sync()
+//   .then(() => {
+//     console.log("User synchronized successfully.");
+//   })
+//   .catch((error) => {
+//     console.error("Error synchronizing cart model:", error);
+//   });
+// Product.sync()
+//   .then(() => {
+//     console.log("Product synchronized successfully.");
+//   })
+//   .catch((error) => {
+//     console.error("Error synchronizing cart model:", error);
+//   });
+// Image.sync()
+//   .then(() => {
+//     console.log("Image synchronized successfully.");
+//   })
+//   .catch((error) => {
+//     console.error("Error synchronizing Image model:", error);
+//   });
 
 // associations
 
@@ -93,16 +93,17 @@ Order.belongsTo(User, { foreignKey: "userId" });
 Order.belongsToMany(Product, { through: OrderProducts });
 Product.belongsToMany(Order, { through: OrderProducts });
 User.hasMany(Order, { foreignKey: "userId" });
+Order.hasMany(OrderProducts, { foreignKey: 'orderId', as: 'orderProducts' }); 
 
-//syncing models and starting server
-// sequelize
-//   .sync({ force: false })
-//   .then(() => {
-//     console.log("Models synchronized successfully.");
-//   })
-//   .catch((error) => {
-//     console.error("Error synchronizing models:", error);
-//   });
+// syncing models and starting server
+sequelize
+  .sync({ force: false })
+  .then(() => {
+    console.log("Models synchronized successfully.");
+  })
+  .catch((error) => {
+    console.error("Error synchronizing models:", error);
+  });
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);

@@ -201,20 +201,23 @@ export const getAllUsers: RequestHandler = async (req, res, next) => {
 
 //get all orders
 export const getAllOrders: RequestHandler = async (req, res, next) => {
-  console.log("all order function. called");
-  const allOrders: Order[] = await Order.findAll({order:[["orderDate", "ASC"]]});
-  console.log("all orders are :", allOrders);
-
- const ordersWithDetails=await Promise.all(allOrders.map(async (order:any)=>{
-    const currProducts=await OrderProducts.findOne({where:{orderId:order.id}});
-    console.log("curr products object :", currProducts);    
-    return {...order.toJSON(), products:currProducts}
-  }))
-    console.log("orders with details are completed :",ordersWithDetails);    
+  try {
+    const allOrders: Order[] = await Order.findAll({
+      include: [
+        {
+          model: OrderProducts,
+          as: "orderProducts",
+        },
+      ],
+      order: [["orderDate", "ASC"]],
+    });
     return res
       .status(200)
-      .json({ message: "Fetched all orders.", data: ordersWithDetails });
-
+      .json({ message: "Fetched all orders.", data: allOrders });
+  } catch (error) {
+    console.error("Error fetching all orders. :", error);
+    res.status(500).send("Error fetching all orders. ");
+  }
 };
 
 //approving an order

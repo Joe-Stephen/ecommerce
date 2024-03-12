@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const userRouter_1 = __importDefault(require("./modules/router/userRouter"));
+const db_1 = __importDefault(require("./modules/config/db"));
 const dotenv_1 = __importDefault(require("dotenv"));
 //importing models
 const userModel_1 = __importDefault(require("./modules/user/userModel"));
@@ -25,55 +26,55 @@ app.use(express_1.default.urlencoded({ extended: true }));
 app.use("/", userRouter_1.default);
 app.use("/admin", adminRouter_1.default);
 //cart syncing
-cartModel_1.default.sync()
-    .then(() => {
-    console.log("Cart synchronized successfully.");
-})
-    .catch((error) => {
-    console.error("Error synchronizing cart model:", error);
-});
-cartProductsModel_1.default.sync()
-    .then(() => {
-    console.log("CartProduct synchronized successfully.");
-})
-    .catch((error) => {
-    console.error("Error synchronizing CartProduct model:", error);
-});
-orderModel_1.default.sync()
-    .then(() => {
-    console.log("Order synchronized successfully.");
-})
-    .catch((error) => {
-    console.error("Error synchronizing Order model:", error);
-});
-orderProductsModel_1.default.sync()
-    .then(() => {
-    console.log("OrderProducts synchronized successfully.");
-})
-    .catch((error) => {
-    console.error("Error synchronizing Image model:", error);
-});
-userModel_1.default.sync()
-    .then(() => {
-    console.log("User synchronized successfully.");
-})
-    .catch((error) => {
-    console.error("Error synchronizing cart model:", error);
-});
-productModel_1.default.sync()
-    .then(() => {
-    console.log("Product synchronized successfully.");
-})
-    .catch((error) => {
-    console.error("Error synchronizing cart model:", error);
-});
-imageModel_1.default.sync()
-    .then(() => {
-    console.log("Image synchronized successfully.");
-})
-    .catch((error) => {
-    console.error("Error synchronizing Image model:", error);
-});
+// Cart.sync()
+//   .then(() => {
+//     console.log("Cart synchronized successfully.");
+//   })
+//   .catch((error) => {
+//     console.error("Error synchronizing cart model:", error);
+//   });
+// CartProducts.sync()
+//   .then(() => {
+//     console.log("CartProduct synchronized successfully.");
+//   })
+//   .catch((error) => {
+//     console.error("Error synchronizing CartProduct model:", error);
+//   });
+// Order.sync()
+//   .then(() => {
+//     console.log("Order synchronized successfully.");
+//   })
+//   .catch((error) => {
+//     console.error("Error synchronizing Order model:", error);
+//   });
+//   OrderProducts.sync()
+//   .then(() => {
+//     console.log("OrderProducts synchronized successfully.");
+//   })
+//   .catch((error) => {
+//     console.error("Error synchronizing Image model:", error);
+//   });
+// User.sync()
+//   .then(() => {
+//     console.log("User synchronized successfully.");
+//   })
+//   .catch((error) => {
+//     console.error("Error synchronizing cart model:", error);
+//   });
+// Product.sync()
+//   .then(() => {
+//     console.log("Product synchronized successfully.");
+//   })
+//   .catch((error) => {
+//     console.error("Error synchronizing cart model:", error);
+//   });
+// Image.sync()
+//   .then(() => {
+//     console.log("Image synchronized successfully.");
+//   })
+//   .catch((error) => {
+//     console.error("Error synchronizing Image model:", error);
+//   });
 // associations
 //image associations
 imageModel_1.default.belongsTo(productModel_1.default, { foreignKey: "productId" });
@@ -88,15 +89,16 @@ orderModel_1.default.belongsTo(userModel_1.default, { foreignKey: "userId" });
 orderModel_1.default.belongsToMany(productModel_1.default, { through: orderProductsModel_1.default });
 productModel_1.default.belongsToMany(orderModel_1.default, { through: orderProductsModel_1.default });
 userModel_1.default.hasMany(orderModel_1.default, { foreignKey: "userId" });
-//syncing models and starting server
-// sequelize
-//   .sync({ force: false })
-//   .then(() => {
-//     console.log("Models synchronized successfully.");
-//   })
-//   .catch((error) => {
-//     console.error("Error synchronizing models:", error);
-//   });
+orderModel_1.default.hasMany(orderProductsModel_1.default, { foreignKey: 'orderId', as: 'orderProducts' });
+// syncing models and starting server
+db_1.default
+    .sync({ force: false })
+    .then(() => {
+    console.log("Models synchronized successfully.");
+})
+    .catch((error) => {
+    console.error("Error synchronizing models:", error);
+});
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 });

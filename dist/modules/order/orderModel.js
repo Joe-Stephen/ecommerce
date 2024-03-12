@@ -29,6 +29,10 @@ Order.init({
         type: sequelize_1.DataTypes.STRING(128),
         defaultValue: "To be approved",
     },
+    orderProductId: {
+        type: sequelize_1.DataTypes.INTEGER.UNSIGNED,
+        allowNull: false,
+    },
 }, {
     tableName: "orders",
     sequelize: db_1.default,
