@@ -7,6 +7,7 @@ import User from "../user/userModel";
 import Product from "../product/productModel";
 import Image from "../product/imageModel";
 import Order from "../order/orderModel";
+import OrderProducts from "../order/orderProductsModel";
 
 //admin login
 export const loginAdmin: RequestHandler = async (req, res, next) => {
@@ -201,11 +202,19 @@ export const getAllUsers: RequestHandler = async (req, res, next) => {
 //get all orders
 export const getAllOrders: RequestHandler = async (req, res, next) => {
   console.log("all order function. called");
-  const allOrders: Order[] = await Order.findAll();
+  const allOrders: Order[] = await Order.findAll({order:[["orderDate", "ASC"]]});
   console.log("all orders are :", allOrders);
-  return res
-    .status(200)
-    .json({ message: "Fetched all orders.", data: allOrders });
+
+ const ordersWithDetails=await Promise.all(allOrders.map(async (order:any)=>{
+    const currProducts=await OrderProducts.findOne({where:{orderId:order.id}});
+    console.log("curr products object :", currProducts);    
+    return {...order.toJSON(), products:currProducts}
+  }))
+    console.log("orders with details are completed :",ordersWithDetails);    
+    return res
+      .status(200)
+      .json({ message: "Fetched all orders.", data: ordersWithDetails });
+
 };
 
 //approving an order

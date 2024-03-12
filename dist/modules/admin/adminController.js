@@ -15,10 +15,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.getUserById = exports.approveOrder = exports.getAllOrders = exports.getAllUsers = exports.deleteUser = exports.toggleUserAccess = exports.addProduct = exports.resetPassword = exports.loginAdmin = void 0;
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+//importing models
 const userModel_1 = __importDefault(require("../user/userModel"));
 const productModel_1 = __importDefault(require("../product/productModel"));
 const imageModel_1 = __importDefault(require("../product/imageModel"));
 const orderModel_1 = __importDefault(require("../order/orderModel"));
+const orderProductsModel_1 = __importDefault(require("../order/orderProductsModel"));
 //admin login
 const loginAdmin = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -154,6 +156,7 @@ const addProduct = (req, res, next) => __awaiter(void 0, void 0, void 0, functio
     }
 });
 exports.addProduct = addProduct;
+//toggling the user access status (block/unblock)
 const toggleUserAccess = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { userId } = req.query;
@@ -204,13 +207,20 @@ exports.getAllUsers = getAllUsers;
 //get all orders
 const getAllOrders = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("all order function. called");
-    const allOrders = yield orderModel_1.default.findAll();
+    const allOrders = yield orderModel_1.default.findAll({ order: [["orderDate", "ASC"]] });
     console.log("all orders are :", allOrders);
+    const ordersWithDetails = yield Promise.all(allOrders.map((order) => __awaiter(void 0, void 0, void 0, function* () {
+        const currProducts = yield orderProductsModel_1.default.findOne({ where: { orderId: order.id } });
+        console.log("curr products object :", currProducts);
+        return Object.assign(Object.assign({}, order.toJSON()), { products: currProducts });
+    })));
+    console.log("orders with details are completed :", ordersWithDetails);
     return res
         .status(200)
-        .json({ message: "Fetched all orders.", data: allOrders });
+        .json({ message: "Fetched all orders.", data: ordersWithDetails });
 });
 exports.getAllOrders = getAllOrders;
+//approving an order
 const approveOrder = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { orderId } = req.query;
