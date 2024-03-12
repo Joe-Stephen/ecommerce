@@ -9,12 +9,13 @@ const adminRouter = (0, express_1.Router)();
 const adminController_1 = require("../admin/adminController");
 //middlewares
 const multerMiddleware_1 = __importDefault(require("../admin/multerMiddleware"));
-const userAuthentication_1 = __importDefault(require("../user/userAuthentication"));
+const adminAuthentication_1 = __importDefault(require("../admin/adminAuthentication"));
 //admin functionalities
-adminRouter.post("/login", userAuthentication_1.default, adminController_1.loginAdmin);
-adminRouter.post("/product", userAuthentication_1.default, multerMiddleware_1.default.array("images"), adminController_1.addProduct);
-adminRouter.get("/", userAuthentication_1.default, adminController_1.getAllUsers);
-adminRouter.get("/:id", userAuthentication_1.default, adminController_1.getUserById);
-adminRouter.patch("/toggleStatus", adminController_1.toggleUserAccess);
-adminRouter.delete("/:id", userAuthentication_1.default, adminController_1.deleteUser);
+adminRouter.post("/login", adminController_1.loginAdmin);
+adminRouter.post("/product", adminAuthentication_1.default, multerMiddleware_1.default.array("images"), adminController_1.addProduct);
+adminRouter.get("/", adminAuthentication_1.default, adminController_1.getAllUsers);
+adminRouter.get("/orders", adminAuthentication_1.default, adminController_1.getAllOrders);
+adminRouter.get("/:id", adminAuthentication_1.default, adminController_1.getUserById);
+adminRouter.patch("/toggleStatus", adminAuthentication_1.default, adminController_1.toggleUserAccess);
+adminRouter.delete("/:id", adminAuthentication_1.default, adminController_1.deleteUser);
 exports.default = adminRouter;

@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken";
 import User from "../user/userModel";
 import Product from "../product/productModel";
 import Image from "../product/imageModel";
+import Order from "../order/orderModel";
 
 //admin login
 export const loginAdmin: RequestHandler = async (req, res, next) => {
@@ -153,21 +154,21 @@ export const addProduct: RequestHandler = async (req, res, next) => {
 
 export const toggleUserAccess: RequestHandler = async (req, res, next) => {
   try {
-    console.log("data in body :", req.body);
-    const {userId}=req.query;
-    if(userId){
-      const user=await User.findByPk(userId as string, {});
-      console.log("the user got is :", user)
-      if(user){
-        user.isBlocked=!user.isBlocked;
+    const { userId } = req.query;
+    if (userId) {
+      const user = await User.findByPk(userId as string, {});
+      if (user) {
+        user.isBlocked = !user.isBlocked;
         await user?.save();
-        console.log("User status has been changed successfully.");      
-        return res.status(200).json({ message: "User status has been changed successfully." });
-      }else{
+        console.log("User status has been changed successfully.");
+        return res
+          .status(200)
+          .json({ message: "User status has been changed successfully." });
+      } else {
         console.error("No user found.");
         res.status(400).send("No user found.");
       }
-    }else{
+    } else {
       console.error("Please provide a user id.");
       res.status(400).send("Please provide a user id.");
     }
@@ -193,6 +194,16 @@ export const getAllUsers: RequestHandler = async (req, res, next) => {
   return res
     .status(200)
     .json({ message: "Fetched all users.", data: allUsers });
+};
+
+//get all orders
+export const getAllOrders: RequestHandler = async (req, res, next) => {
+  console.log("all order function. called");  
+  const allOrders: Order[] = await Order.findAll();
+  console.log("all orders are :",allOrders);  
+  return res
+    .status(200)
+    .json({ message: "Fetched all orders.", data: allOrders });
 };
 
 //get user by id

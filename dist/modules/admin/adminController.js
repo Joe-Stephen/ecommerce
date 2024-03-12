@@ -12,12 +12,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getUserById = exports.getAllUsers = exports.deleteUser = exports.toggleUserAccess = exports.addProduct = exports.resetPassword = exports.loginAdmin = void 0;
+exports.getUserById = exports.getAllOrders = exports.getAllUsers = exports.deleteUser = exports.toggleUserAccess = exports.addProduct = exports.resetPassword = exports.loginAdmin = void 0;
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const userModel_1 = __importDefault(require("../user/userModel"));
 const productModel_1 = __importDefault(require("../product/productModel"));
 const imageModel_1 = __importDefault(require("../product/imageModel"));
+const orderModel_1 = __importDefault(require("../order/orderModel"));
 //admin login
 const loginAdmin = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -155,16 +156,16 @@ const addProduct = (req, res, next) => __awaiter(void 0, void 0, void 0, functio
 exports.addProduct = addProduct;
 const toggleUserAccess = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        console.log("data in body :", req.body);
         const { userId } = req.query;
         if (userId) {
             const user = yield userModel_1.default.findByPk(userId, {});
-            console.log("the user got is :", user);
             if (user) {
                 user.isBlocked = !user.isBlocked;
                 yield (user === null || user === void 0 ? void 0 : user.save());
                 console.log("User status has been changed successfully.");
-                return res.status(200).json({ message: "User status has been changed successfully." });
+                return res
+                    .status(200)
+                    .json({ message: "User status has been changed successfully." });
             }
             else {
                 console.error("No user found.");
@@ -200,6 +201,16 @@ const getAllUsers = (req, res, next) => __awaiter(void 0, void 0, void 0, functi
         .json({ message: "Fetched all users.", data: allUsers });
 });
 exports.getAllUsers = getAllUsers;
+//get all orders
+const getAllOrders = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("all order function. called");
+    const allOrders = yield orderModel_1.default.findAll();
+    console.log("all orders are :", allOrders);
+    return res
+        .status(200)
+        .json({ message: "Fetched all orders.", data: allOrders });
+});
+exports.getAllOrders = getAllOrders;
 //get user by id
 const getUserById = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     const { id } = req.params;
