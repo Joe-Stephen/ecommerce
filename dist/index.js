@@ -13,6 +13,7 @@ const productModel_1 = __importDefault(require("./modules/product/productModel")
 const cartModel_1 = __importDefault(require("./modules/cart/cartModel"));
 const cartProductsModel_1 = __importDefault(require("./modules/cart/cartProductsModel"));
 const orderModel_1 = __importDefault(require("./modules/order/orderModel"));
+const orderProductsModel_1 = __importDefault(require("./modules/order/orderProductsModel"));
 const adminRouter_1 = __importDefault(require("./modules/router/adminRouter"));
 dotenv_1.default.config();
 const PORT = 3000 || process.env.PORT;
@@ -45,6 +46,13 @@ orderModel_1.default.sync()
     .catch((error) => {
     console.error("Error synchronizing Order model:", error);
 });
+orderProductsModel_1.default.sync()
+    .then(() => {
+    console.log("OrderProducts synchronized successfully.");
+})
+    .catch((error) => {
+    console.error("Error synchronizing Image model:", error);
+});
 userModel_1.default.sync()
     .then(() => {
     console.log("User synchronized successfully.");
@@ -67,12 +75,19 @@ imageModel_1.default.sync()
     console.error("Error synchronizing Image model:", error);
 });
 // associations
+//image associations
 imageModel_1.default.belongsTo(productModel_1.default, { foreignKey: "productId" });
 productModel_1.default.hasMany(imageModel_1.default, { foreignKey: "productId" });
+//cart associations
 cartModel_1.default.belongsTo(userModel_1.default, { foreignKey: "userId" });
 cartModel_1.default.belongsToMany(productModel_1.default, { through: cartProductsModel_1.default });
 productModel_1.default.belongsToMany(cartModel_1.default, { through: cartProductsModel_1.default });
 userModel_1.default.hasOne(cartModel_1.default, { foreignKey: "userId" });
+//order associations
+orderModel_1.default.belongsTo(userModel_1.default, { foreignKey: "userId" });
+orderModel_1.default.belongsToMany(productModel_1.default, { through: orderProductsModel_1.default });
+productModel_1.default.belongsToMany(orderModel_1.default, { through: orderProductsModel_1.default });
+userModel_1.default.hasMany(orderModel_1.default, { foreignKey: "userId" });
 //syncing models and starting server
 // sequelize
 //   .sync({ force: false })

@@ -87,7 +87,9 @@ export const getAllProducts: RequestHandler = async (req, res, next) => {
 
     if (searchKey) whereCondition.name = { [Op.like]: `%${searchKey}%` };
 
-    const orderCondition: any = sortType ? [["selling_price", `${sortType}`]] : [];
+    const orderCondition: any = sortType
+      ? [["selling_price", `${sortType}`]]
+      : [];
 
     const products = await Product.findAll({
       limit: count,
@@ -102,7 +104,9 @@ export const getAllProducts: RequestHandler = async (req, res, next) => {
       return { ...product.toJSON(), Images: imageUrls };
     });
 
-    return res.status(200).json({ message: "Products fetched successfully.", data: allProducts });
+    return res
+      .status(200)
+      .json({ message: "Products fetched successfully.", data: allProducts });
   } catch (error) {
     console.error("Error in finding all products function:", error);
     return res.status(400).json({ message: "Couldn't load all products." });
@@ -157,8 +161,8 @@ export const addProduct: RequestHandler = async (req, res, next) => {
 
     if (promises) {
       await Promise.all(promises);
+      res.status(200).send("Images uploaded successfully");
     }
-    res.status(200).send("Images uploaded successfully");
   } catch (error) {
     console.error("Error uploading images:", error);
     res.status(500).send("Error uploading images");

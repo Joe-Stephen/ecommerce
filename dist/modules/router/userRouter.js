@@ -9,6 +9,9 @@ const userRouter = (0, express_1.Router)();
 const userController_1 = require("../user/userController");
 //cart functions
 const cartController_1 = require("../cart/cartController");
+//order functions
+const orderController_1 = require("../order/orderController");
+//middlewares
 const userAuthentication_1 = __importDefault(require("../user/userAuthentication"));
 //user functionalities
 userRouter.post("/", userController_1.createUser);
@@ -22,4 +25,6 @@ userRouter.post("/cart", cartController_1.addToCart);
 userRouter.patch("/decreaseCartQuantity", cartController_1.decreaseCartQuantity);
 userRouter.patch("/increaseCartQuantity", cartController_1.increaseCartQuantity);
 userRouter.delete("/removeCartItem", cartController_1.removeCartItem);
+//order functionalities
+userRouter.post("/checkOut", orderController_1.checkOut);
 exports.default = userRouter;

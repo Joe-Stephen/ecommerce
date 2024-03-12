@@ -10,6 +10,7 @@ import Product from "./modules/product/productModel";
 import Cart from "./modules/cart/cartModel";
 import CartProducts from "./modules/cart/cartProductsModel";
 import Order from "./modules/order/orderModel";
+import OrderProducts from "./modules/order/orderProductsModel";
 import adminRouter from "./modules/router/adminRouter";
 
 dotenv.config();
@@ -46,6 +47,13 @@ Order.sync()
   .catch((error) => {
     console.error("Error synchronizing Order model:", error);
   });
+  OrderProducts.sync()
+  .then(() => {
+    console.log("OrderProducts synchronized successfully.");
+  })
+  .catch((error) => {
+    console.error("Error synchronizing Image model:", error);
+  });
 User.sync()
   .then(() => {
     console.log("User synchronized successfully.");
@@ -69,12 +77,22 @@ Image.sync()
   });
 
 // associations
+
+//image associations
 Image.belongsTo(Product, { foreignKey: "productId" });
 Product.hasMany(Image, { foreignKey: "productId" });
+
+//cart associations
 Cart.belongsTo(User, { foreignKey: "userId" });
 Cart.belongsToMany(Product, { through: CartProducts });
 Product.belongsToMany(Cart, { through: CartProducts });
 User.hasOne(Cart, { foreignKey: "userId" });
+
+//order associations
+Order.belongsTo(User, { foreignKey: "userId" });
+Order.belongsToMany(Product, { through: OrderProducts });
+Product.belongsToMany(Order, { through: OrderProducts });
+User.hasMany(Order, { foreignKey: "userId" });
 
 //syncing models and starting server
 // sequelize
@@ -85,6 +103,7 @@ User.hasOne(Cart, { foreignKey: "userId" });
 //   .catch((error) => {
 //     console.error("Error synchronizing models:", error);
 //   });
+
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });

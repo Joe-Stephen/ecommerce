@@ -95,7 +95,9 @@ const getAllProducts = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
         const whereCondition = { isBlocked: false };
         if (searchKey)
             whereCondition.name = { [sequelize_1.Op.like]: `%${searchKey}%` };
-        const orderCondition = sortType ? [["selling_price", `${sortType}`]] : [];
+        const orderCondition = sortType
+            ? [["selling_price", `${sortType}`]]
+            : [];
         const products = yield productModel_1.default.findAll({
             limit: count,
             offset: skip,
@@ -107,7 +109,9 @@ const getAllProducts = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
             const imageUrls = product.Images.map((image) => image.image);
             return Object.assign(Object.assign({}, product.toJSON()), { Images: imageUrls });
         });
-        return res.status(200).json({ message: "Products fetched successfully.", data: allProducts });
+        return res
+            .status(200)
+            .json({ message: "Products fetched successfully.", data: allProducts });
     }
     catch (error) {
         console.error("Error in finding all products function:", error);
@@ -156,8 +160,8 @@ const addProduct = (req, res, next) => __awaiter(void 0, void 0, void 0, functio
         }));
         if (promises) {
             yield Promise.all(promises);
+            res.status(200).send("Images uploaded successfully");
         }
-        res.status(200).send("Images uploaded successfully");
     }
     catch (error) {
         console.error("Error uploading images:", error);

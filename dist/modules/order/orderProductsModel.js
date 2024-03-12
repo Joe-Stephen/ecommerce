@@ -5,32 +5,32 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const sequelize_1 = require("sequelize");
 const db_1 = __importDefault(require("../config/db"));
-class Order extends sequelize_1.Model {
+class OrderProducts extends sequelize_1.Model {
 }
-Order.init({
+OrderProducts.init({
     id: {
         type: sequelize_1.DataTypes.INTEGER.UNSIGNED,
         autoIncrement: true,
         primaryKey: true,
     },
-    userId: {
+    orderId: {
         type: sequelize_1.DataTypes.INTEGER.UNSIGNED,
         allowNull: false,
     },
-    orderDate: {
-        type: sequelize_1.DataTypes.DATE,
-        defaultValue: sequelize_1.DataTypes.NOW,
-    },
-    totalAmount: {
+    productId: {
         type: sequelize_1.DataTypes.INTEGER.UNSIGNED,
         allowNull: false,
     },
-    orderStatus: {
-        type: sequelize_1.DataTypes.STRING(128),
-        defaultValue: "Pending",
+    price: {
+        type: sequelize_1.DataTypes.INTEGER.UNSIGNED,
+        allowNull: false,
+    },
+    quantity: {
+        type: sequelize_1.DataTypes.INTEGER.UNSIGNED,
+        allowNull: false,
     },
 }, {
-    tableName: "orders",
+    tableName: "orderProducts",
     sequelize: db_1.default,
 });
-exports.default = Order;
+exports.default = OrderProducts;

@@ -51,7 +51,7 @@ const getUserCart = (req, res, next) => __awaiter(void 0, void 0, void 0, functi
 exports.getUserCart = getUserCart;
 const addToCart = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        console.log(req.body);
+        const { cartId, productId } = req.query;
         let userCart = yield cartModel_1.default.findOne({ where: { userId: 1 } });
         if (!userCart) {
             userCart = yield cartModel_1.default.create({
@@ -59,7 +59,7 @@ const addToCart = (req, res, next) => __awaiter(void 0, void 0, void 0, function
             });
             yield cartProductsModel_1.default.create({
                 cartId: userCart.id,
-                productId: 3,
+                productId: productId,
                 quantity: 1,
             });
             console.log("Product has been added to cart.");
@@ -69,10 +69,10 @@ const addToCart = (req, res, next) => __awaiter(void 0, void 0, void 0, function
         }
         else {
             const existingProduct = yield cartProductsModel_1.default.findOne({
-                where: { cartId: 1, productId: 3 },
+                where: { cartId: cartId, productId: productId },
             });
             if (!existingProduct) {
-                cartProductsModel_1.default.create({ cartId: 1, productId: 3, quantity: 1 });
+                cartProductsModel_1.default.create({ cartId: cartId, productId: productId, quantity: 1 });
                 console.log("Product has been added to cart.");
                 return res
                     .status(200)

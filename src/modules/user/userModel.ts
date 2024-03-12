@@ -1,6 +1,5 @@
 import { DataTypes, Model } from "sequelize";
 import sequelize from "../config/db";
-import Cart from "../cart/cartModel";
 
 class User extends Model {
   public id!: number;

@@ -19,11 +19,12 @@ import {
   removeCartItem,
 } from "../cart/cartController";
 
-//admin functions
-import { addProduct } from "../admin/adminController";
+//order functions
+import {
+  checkOut
+} from "../order/orderController";
 
 //middlewares
-import upload from "../admin/multerMiddleware";
 import verifyUser from "../user/userAuthentication";
 
 //user functionalities
@@ -39,5 +40,8 @@ userRouter.post("/cart", addToCart);
 userRouter.patch("/decreaseCartQuantity", decreaseCartQuantity);
 userRouter.patch("/increaseCartQuantity", increaseCartQuantity);
 userRouter.delete("/removeCartItem", removeCartItem);
+
+//order functionalities
+userRouter.post("/checkOut", checkOut);
 
 export default userRouter;

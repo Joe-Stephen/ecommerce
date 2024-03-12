@@ -44,8 +44,7 @@ export const getUserCart: RequestHandler = async (req, res, next) => {
 
 export const addToCart: RequestHandler = async (req, res, next) => {
   try {
-    console.log(req.body);
-
+    const {cartId, productId}=req.query;
     let userCart = await Cart.findOne({ where: { userId: 1 } });
     if (!userCart) {
       userCart = await Cart.create({
@@ -53,7 +52,7 @@ export const addToCart: RequestHandler = async (req, res, next) => {
       });
       await CartProducts.create({
         cartId: userCart.id,
-        productId: 3,
+        productId: productId,
         quantity: 1,
       });
       console.log("Product has been added to cart.");
@@ -62,10 +61,10 @@ export const addToCart: RequestHandler = async (req, res, next) => {
         .json({ message: "Product has been added to cart." });
     } else {
       const existingProduct = await CartProducts.findOne({
-        where: { cartId: 1, productId: 3 },
+        where: { cartId: cartId, productId: productId },
       });
       if (!existingProduct) {
-        CartProducts.create({ cartId: 1, productId: 3, quantity: 1 });
+        CartProducts.create({ cartId: cartId, productId: productId, quantity: 1 });
         console.log("Product has been added to cart.");
         return res
           .status(200)
