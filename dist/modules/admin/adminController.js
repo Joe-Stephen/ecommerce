@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getUserById = exports.getAllUsers = exports.deleteUser = exports.addProduct = exports.resetPassword = exports.loginAdmin = void 0;
+exports.getUserById = exports.getAllUsers = exports.deleteUser = exports.toggleUserAccess = exports.addProduct = exports.resetPassword = exports.loginAdmin = void 0;
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const userModel_1 = __importDefault(require("../user/userModel"));
@@ -153,6 +153,35 @@ const addProduct = (req, res, next) => __awaiter(void 0, void 0, void 0, functio
     }
 });
 exports.addProduct = addProduct;
+const toggleUserAccess = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        console.log("data in body :", req.body);
+        const { userId } = req.query;
+        if (userId) {
+            const user = yield userModel_1.default.findByPk(userId, {});
+            console.log("the user got is :", user);
+            if (user) {
+                user.isBlocked = !user.isBlocked;
+                yield (user === null || user === void 0 ? void 0 : user.save());
+                console.log("User status has been changed successfully.");
+                return res.status(200).json({ message: "User status has been changed successfully." });
+            }
+            else {
+                console.error("No user found.");
+                res.status(400).send("No user found.");
+            }
+        }
+        else {
+            console.error("Please provide a user id.");
+            res.status(400).send("Please provide a user id.");
+        }
+    }
+    catch (error) {
+        console.error("Error creating product:", error);
+        res.status(500).send("Error creating product");
+    }
+});
+exports.toggleUserAccess = toggleUserAccess;
 //delete an existing user
 const deleteUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     const { id } = req.params;

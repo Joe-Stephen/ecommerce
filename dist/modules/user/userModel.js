@@ -25,6 +25,10 @@ User.init({
         type: sequelize_1.DataTypes.STRING(128),
         allowNull: false,
     },
+    isBlocked: {
+        type: sequelize_1.DataTypes.BOOLEAN,
+        defaultValue: false,
+    },
     isAdmin: {
         type: sequelize_1.DataTypes.BOOLEAN,
         defaultValue: false,

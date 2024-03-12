@@ -1,7 +1,5 @@
 import { RequestHandler, Request } from "express";
 import { Op } from "sequelize";
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
 
 //model imports
 import User from "../user/userModel";
@@ -12,10 +10,17 @@ import OrderProducts from "./orderProductsModel";
 
 export const checkOut: RequestHandler = async (req, res, next) => {
   try {
-    const pendingOrder= await Order.findAll({where:{userId:1, orderStatus:"Pending"}});    
-    if(pendingOrder.length>0){
+    const pendingOrder = await Order.findAll({
+      where: { userId: 1, orderStatus: "Pending" },
+    });
+    if (pendingOrder.length > 0) {
       console.log("This user has a pending order.");
-      return res.status(400).json({ message: "Couldn't checkout products as you already have a pending order." });      
+      return res
+        .status(400)
+        .json({
+          message:
+            "Couldn't checkout products as you already have a pending order.",
+        });
     }
     const userWithCart = await User.findByPk(1, {
       include: [
@@ -63,5 +68,3 @@ export const checkOut: RequestHandler = async (req, res, next) => {
     return res.status(400).json({ message: "Couldn't checkout products." });
   }
 };
-
-

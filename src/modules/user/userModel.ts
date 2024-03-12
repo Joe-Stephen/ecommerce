@@ -6,6 +6,7 @@ class User extends Model {
   public username!: string;
   public email!: string;
   public password!: string;
+  public isBlocked!: boolean;
   public isAdmin!:boolean;
 
   // timestamps!
@@ -31,6 +32,10 @@ User.init(
     password: {
       type: DataTypes.STRING(128),
       allowNull: false,
+    },
+    isBlocked:{
+      type: DataTypes.BOOLEAN,
+      defaultValue:false,
     },
     isAdmin:{
       type: DataTypes.BOOLEAN,

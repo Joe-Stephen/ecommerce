@@ -151,6 +151,32 @@ export const addProduct: RequestHandler = async (req, res, next) => {
   }
 };
 
+export const toggleUserAccess: RequestHandler = async (req, res, next) => {
+  try {
+    console.log("data in body :", req.body);
+    const {userId}=req.query;
+    if(userId){
+      const user=await User.findByPk(userId as string, {});
+      console.log("the user got is :", user)
+      if(user){
+        user.isBlocked=!user.isBlocked;
+        await user?.save();
+        console.log("User status has been changed successfully.");      
+        return res.status(200).json({ message: "User status has been changed successfully." });
+      }else{
+        console.error("No user found.");
+        res.status(400).send("No user found.");
+      }
+    }else{
+      console.error("Please provide a user id.");
+      res.status(400).send("Please provide a user id.");
+    }
+  } catch (error) {
+    console.error("Error creating product:", error);
+    res.status(500).send("Error creating product");
+  }
+};
+
 //delete an existing user
 export const deleteUser: RequestHandler = async (req, res, next) => {
   const { id } = req.params;
