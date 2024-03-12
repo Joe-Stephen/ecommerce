@@ -6,6 +6,44 @@ import User from "../user/userModel";
 import Product from "../product/productModel";
 import Image from "../product/imageModel";
 
+//admin login
+export const loginAdmin: RequestHandler = async (req, res, next) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      console.log("Please provide all the details.");
+      return res
+        .status(400)
+        .json({ message: "Please provide all the details." });
+    }
+    const user = await User.findOne({ where: { email: email } });
+    if (!user) {
+      console.log("No admin found with this email!");
+      return res
+        .status(400)
+        .json({ message: "No admin found with this email!" });
+    }
+    if (user && (await bcrypt.compare(password, user.password))) {
+      const loggedInUser = {
+        id: user.id,
+        name: user.username,
+        email: user.email,
+        token: generateToken(user.email),
+      };
+      console.log("Logged in as admin.");
+      return res
+        .status(201)
+        .json({ message: "Logged in as admin.", data: loggedInUser });
+    } else {
+      console.log("Incorrect password.");
+      return res.status(201).json({ message: "Incorrect password.l" });
+    }
+  } catch (error) {
+    console.error("Error in login function :", error);
+    return res.status(400).json({ message: "Login unsuccessfull." });
+  }
+};
+
 //JWT generator function
 const generateToken = (email: string) => {
   return jwt.sign({ email }, process.env.JWT_SECRET as string, {
@@ -13,6 +51,7 @@ const generateToken = (email: string) => {
   });
 };
 
+//reset password
 export const resetPassword: RequestHandler = async (req, res, next) => {
   try {
     const { email } = req.body.user;
@@ -82,15 +121,13 @@ export const addProduct: RequestHandler = async (req, res, next) => {
 
     //price validations
     if (formData.selling_price > formData.regular_price) {
-      return res
-        .status(400)
-        .json({
-          message: "Selling price shouldn't be greater than regular price.",
-        });
+      return res.status(400).json({
+        message: "Selling price shouldn't be greater than regular price.",
+      });
     }
 
     //creating new product
-    const newProduct = await Product.create( formData );
+    const newProduct = await Product.create(formData);
 
     //uploading image files
     const promises = (req.files as File[] | undefined)?.map(
@@ -114,6 +151,7 @@ export const addProduct: RequestHandler = async (req, res, next) => {
   }
 };
 
+//delete an existing user
 export const deleteUser: RequestHandler = async (req, res, next) => {
   const { id } = req.params;
   const deletedUser: User | null = await User.findByPk(id);
@@ -123,6 +161,7 @@ export const deleteUser: RequestHandler = async (req, res, next) => {
     .json({ message: "User deleted successfully.", data: deleteUser });
 };
 
+//get all users
 export const getAllUsers: RequestHandler = async (req, res, next) => {
   const allUsers: User[] = await User.findAll();
   return res
@@ -130,19 +169,11 @@ export const getAllUsers: RequestHandler = async (req, res, next) => {
     .json({ message: "Fetched all users.", data: allUsers });
 };
 
+//get user by id
 export const getUserById: RequestHandler = async (req, res, next) => {
   const { id } = req.params;
   const user: User | null = await User.findByPk(id);
   return res
     .status(200)
     .json({ message: "User fetched successfully.", data: user });
-};
-
-export const updateUser: RequestHandler = async (req, res, next) => {
-  const { id } = req.params;
-  await User.update({ ...req.body }, { where: { id } });
-  const updatedUser: User | null = await User.findByPk(id);
-  return res
-    .status(200)
-    .json({ message: "User updated successfully.", data: updateUser });
 };

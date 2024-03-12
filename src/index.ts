@@ -1,5 +1,5 @@
 import express, { Application } from "express";
-import router from "./modules/router/router";
+import userRouter from "./modules/router/userRouter";
 import sequelize from "./modules/config/db";
 import dotenv from "dotenv";
 
@@ -9,6 +9,8 @@ import Image from "./modules/product/imageModel";
 import Product from "./modules/product/productModel";
 import Cart from "./modules/cart/cartModel";
 import CartProducts from "./modules/cart/cartProductsModel";
+import Order from "./modules/order/orderModel";
+import adminRouter from "./modules/router/adminRouter";
 
 dotenv.config();
 const PORT = 3000 || process.env.PORT;
@@ -19,7 +21,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // setting routers
-app.use("/", router);
+app.use("/", userRouter);
+app.use("/admin", adminRouter);
 
 //cart syncing
 Cart.sync()
@@ -35,6 +38,13 @@ CartProducts.sync()
   })
   .catch((error) => {
     console.error("Error synchronizing CartProduct model:", error);
+  });
+Order.sync()
+  .then(() => {
+    console.log("Order synchronized successfully.");
+  })
+  .catch((error) => {
+    console.error("Error synchronizing Order model:", error);
   });
 User.sync()
   .then(() => {

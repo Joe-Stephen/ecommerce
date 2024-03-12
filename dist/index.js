@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
-const router_1 = __importDefault(require("./modules/router/router"));
+const userRouter_1 = __importDefault(require("./modules/router/userRouter"));
 const dotenv_1 = __importDefault(require("dotenv"));
 //importing models
 const userModel_1 = __importDefault(require("./modules/user/userModel"));
@@ -12,6 +12,8 @@ const imageModel_1 = __importDefault(require("./modules/product/imageModel"));
 const productModel_1 = __importDefault(require("./modules/product/productModel"));
 const cartModel_1 = __importDefault(require("./modules/cart/cartModel"));
 const cartProductsModel_1 = __importDefault(require("./modules/cart/cartProductsModel"));
+const orderModel_1 = __importDefault(require("./modules/order/orderModel"));
+const adminRouter_1 = __importDefault(require("./modules/router/adminRouter"));
 dotenv_1.default.config();
 const PORT = 3000 || process.env.PORT;
 const app = (0, express_1.default)();
@@ -19,7 +21,8 @@ const app = (0, express_1.default)();
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
 // setting routers
-app.use("/", router_1.default);
+app.use("/", userRouter_1.default);
+app.use("/admin", adminRouter_1.default);
 //cart syncing
 cartModel_1.default.sync()
     .then(() => {
@@ -34,6 +37,13 @@ cartProductsModel_1.default.sync()
 })
     .catch((error) => {
     console.error("Error synchronizing CartProduct model:", error);
+});
+orderModel_1.default.sync()
+    .then(() => {
+    console.log("Order synchronized successfully.");
+})
+    .catch((error) => {
+    console.error("Error synchronizing Order model:", error);
 });
 userModel_1.default.sync()
     .then(() => {

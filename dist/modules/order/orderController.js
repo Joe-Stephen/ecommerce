@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateUser = exports.getUserById = exports.getAllUsers = exports.deleteUser = exports.addProduct = exports.resetPassword = exports.getAllProducts = exports.loginUser = exports.createUser = void 0;
+exports.updateUser = exports.getUserById = exports.getAllUsers = exports.deleteUser = exports.addProduct = exports.resetPassword = exports.getAllProducts = exports.loginUser = exports.createUser = exports.checkOut = void 0;
 const sequelize_1 = require("sequelize");
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
@@ -20,6 +20,38 @@ const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const userModel_1 = __importDefault(require("../user/userModel"));
 const imageModel_1 = __importDefault(require("../product/imageModel"));
 const productModel_1 = __importDefault(require("../product/productModel"));
+const cartModel_1 = __importDefault(require("../cart/cartModel"));
+const checkOut = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const userWithCart = yield userModel_1.default.findByPk(1, {
+            include: [
+                {
+                    model: cartModel_1.default,
+                    include: [productModel_1.default],
+                },
+            ],
+        });
+        const productsInCart = userWithCart === null || userWithCart === void 0 ? void 0 : userWithCart.dataValues.Cart.dataValues.Products;
+        console.log("The products in cart object :", productsInCart);
+        const productArray = productsInCart.map((product) => product.dataValues);
+        let grandTotal = 0;
+        productArray.forEach((product) => {
+            product.subTotal =
+                product.selling_price * product.CartProducts.dataValues.quantity;
+            grandTotal += product.subTotal;
+        });
+        return res.status(200).json({
+            message: "Product has been added to cart.",
+            cartProducts: userWithCart === null || userWithCart === void 0 ? void 0 : userWithCart.dataValues.Cart.dataValues.Products,
+            cartGrandTotal: grandTotal,
+        });
+    }
+    catch (error) {
+        console.error("Error in checkout function :", error);
+        return res.status(400).json({ message: "Couldn't checkout products." });
+    }
+});
+exports.checkOut = checkOut;
 const createUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     const { username, email, password } = req.body;
     if (!username || !email || !password) {
@@ -89,28 +121,62 @@ const loginUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function
 exports.loginUser = loginUser;
 const getAllProducts = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { page = 1, searchKey, sortType } = req.query;
+        //query configs
+        const page = req.query.page;
         const count = 5;
         const skip = (parseInt(page) - 1) * count;
-        const whereCondition = { isBlocked: false };
-        if (searchKey)
-            whereCondition.name = { [sequelize_1.Op.like]: `%${searchKey}%` };
-        const orderCondition = sortType ? [["selling_price", `${sortType}`]] : [];
-        const products = yield productModel_1.default.findAll({
-            limit: count,
-            offset: skip,
-            where: whereCondition,
-            order: orderCondition,
-            include: [{ model: imageModel_1.default, attributes: ["image"] }],
-        });
+        const searchKey = req.query.searchKey;
+        const sortType = req.query.sortType;
+        let products;
+        if (searchKey && sortType) {
+            //finding all products
+            products = yield productModel_1.default.findAll({
+                limit: count,
+                offset: skip,
+                where: { isBlocked: false, name: { [sequelize_1.Op.like]: `%${searchKey}%` } },
+                order: [["selling_price", `${sortType}`]],
+                include: [{ model: imageModel_1.default, attributes: ["image"] }],
+            });
+        }
+        else if (searchKey && !sortType) {
+            //finding all products
+            products = yield productModel_1.default.findAll({
+                limit: count,
+                offset: skip,
+                where: { isBlocked: false, name: { [sequelize_1.Op.like]: `%${searchKey}%` } },
+                include: [{ model: imageModel_1.default, attributes: ["image"] }],
+            });
+        }
+        else if (!searchKey && sortType) {
+            //finding all products
+            products = yield productModel_1.default.findAll({
+                limit: count,
+                offset: skip,
+                where: { isBlocked: false },
+                order: [["selling_price", `${sortType}`]],
+                include: [{ model: imageModel_1.default, attributes: ["image"] }],
+            });
+        }
+        else {
+            //finding all products
+            products = yield productModel_1.default.findAll({
+                limit: count,
+                offset: skip,
+                where: { isBlocked: false },
+                include: [{ model: imageModel_1.default, attributes: ["image"] }],
+            });
+        }
+        //formatting images array
         const allProducts = products.map((product) => {
-            const imageUrls = product.Images.map((image) => image.image);
-            return Object.assign(Object.assign({}, product.toJSON()), { Images: imageUrls });
+            const imageNames = product.Images.map((image) => image.image);
+            return Object.assign(Object.assign({}, product.toJSON()), { Images: imageNames }); // Replace Images with imageUrls
         });
-        return res.status(200).json({ message: "Products fetched successfully.", data: allProducts });
+        return res
+            .status(200)
+            .json({ message: "Products fetched successfully.", data: allProducts });
     }
     catch (error) {
-        console.error("Error in finding all products function:", error);
+        console.error("Error in finding all products function :", error);
         return res.status(400).json({ message: "Couldn't load all products." });
     }
 });

@@ -12,18 +12,59 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateUser = exports.getUserById = exports.getAllUsers = exports.deleteUser = exports.addProduct = exports.resetPassword = void 0;
+exports.getUserById = exports.getAllUsers = exports.deleteUser = exports.addProduct = exports.resetPassword = exports.loginAdmin = void 0;
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const userModel_1 = __importDefault(require("../user/userModel"));
 const productModel_1 = __importDefault(require("../product/productModel"));
 const imageModel_1 = __importDefault(require("../product/imageModel"));
+//admin login
+const loginAdmin = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { email, password } = req.body;
+        if (!email || !password) {
+            console.log("Please provide all the details.");
+            return res
+                .status(400)
+                .json({ message: "Please provide all the details." });
+        }
+        const user = yield userModel_1.default.findOne({ where: { email: email } });
+        if (!user) {
+            console.log("No admin found with this email!");
+            return res
+                .status(400)
+                .json({ message: "No admin found with this email!" });
+        }
+        if (user && (yield bcrypt_1.default.compare(password, user.password))) {
+            const loggedInUser = {
+                id: user.id,
+                name: user.username,
+                email: user.email,
+                token: generateToken(user.email),
+            };
+            console.log("Logged in as admin.");
+            return res
+                .status(201)
+                .json({ message: "Logged in as admin.", data: loggedInUser });
+        }
+        else {
+            console.log("Incorrect password.");
+            return res.status(201).json({ message: "Incorrect password.l" });
+        }
+    }
+    catch (error) {
+        console.error("Error in login function :", error);
+        return res.status(400).json({ message: "Login unsuccessfull." });
+    }
+});
+exports.loginAdmin = loginAdmin;
 //JWT generator function
 const generateToken = (email) => {
     return jsonwebtoken_1.default.sign({ email }, process.env.JWT_SECRET, {
         expiresIn: "1d",
     });
 };
+//reset password
 const resetPassword = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { email } = req.body.user;
@@ -86,9 +127,7 @@ const addProduct = (req, res, next) => __awaiter(void 0, void 0, void 0, functio
         }
         //price validations
         if (formData.selling_price > formData.regular_price) {
-            return res
-                .status(400)
-                .json({
+            return res.status(400).json({
                 message: "Selling price shouldn't be greater than regular price.",
             });
         }
@@ -114,6 +153,7 @@ const addProduct = (req, res, next) => __awaiter(void 0, void 0, void 0, functio
     }
 });
 exports.addProduct = addProduct;
+//delete an existing user
 const deleteUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     const { id } = req.params;
     const deletedUser = yield userModel_1.default.findByPk(id);
@@ -123,6 +163,7 @@ const deleteUser = (req, res, next) => __awaiter(void 0, void 0, void 0, functio
         .json({ message: "User deleted successfully.", data: exports.deleteUser });
 });
 exports.deleteUser = deleteUser;
+//get all users
 const getAllUsers = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     const allUsers = yield userModel_1.default.findAll();
     return res
@@ -130,6 +171,7 @@ const getAllUsers = (req, res, next) => __awaiter(void 0, void 0, void 0, functi
         .json({ message: "Fetched all users.", data: allUsers });
 });
 exports.getAllUsers = getAllUsers;
+//get user by id
 const getUserById = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     const { id } = req.params;
     const user = yield userModel_1.default.findByPk(id);
@@ -138,12 +180,3 @@ const getUserById = (req, res, next) => __awaiter(void 0, void 0, void 0, functi
         .json({ message: "User fetched successfully.", data: user });
 });
 exports.getUserById = getUserById;
-const updateUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    const { id } = req.params;
-    yield userModel_1.default.update(Object.assign({}, req.body), { where: { id } });
-    const updatedUser = yield userModel_1.default.findByPk(id);
-    return res
-        .status(200)
-        .json({ message: "User updated successfully.", data: exports.updateUser });
-});
-exports.updateUser = updateUser;

@@ -10,6 +10,38 @@ import Product from "../product/productModel";
 import Cart from "../cart/cartModel";
 import CartProducts from "../cart/cartProductsModel";
 
+export const checkOut: RequestHandler = async (req, res, next) => {
+    try {
+        const userWithCart = await User.findByPk(1, {
+          include: [
+            {
+              model: Cart,
+              include: [Product],
+            },
+          ],
+        });
+        const productsInCart = userWithCart?.dataValues.Cart.dataValues.Products;
+        console.log("The products in cart object :", productsInCart);
+        const productArray = productsInCart.map(
+          (product: any) => product.dataValues
+        );
+        let grandTotal: number = 0;
+        productArray.forEach((product: any) => {
+          product.subTotal =
+            product.selling_price * product.CartProducts.dataValues.quantity;
+          grandTotal += product.subTotal;
+        });
+        return res.status(200).json({
+          message: "Product has been added to cart.",
+          cartProducts: userWithCart?.dataValues.Cart.dataValues.Products,
+          cartGrandTotal: grandTotal,
+        });     
+    } catch (error) {
+        console.error("Error in checkout function :", error);
+        return res.status(400).json({ message: "Couldn't checkout products." });        
+    }
+};
+
 export const createUser: RequestHandler = async (req, res, next) => {
   const { username, email, password } = req.body;
 
@@ -80,31 +112,60 @@ export const loginUser: RequestHandler = async (req, res, next) => {
 
 export const getAllProducts: RequestHandler = async (req, res, next) => {
   try {
-    const { page = 1, searchKey, sortType } = req.query;
-    const count = 5;
-    const skip = (parseInt(page as string) - 1) * count;
-    const whereCondition: any = { isBlocked: false };
+    //query configs
+    const page: any = req.query.page;
+    const count: number = 5;
+    const skip: number = (parseInt(page) - 1) * count;
 
-    if (searchKey) whereCondition.name = { [Op.like]: `%${searchKey}%` };
+    const searchKey: any = req.query.searchKey;
+    const sortType: any = req.query.sortType;
 
-    const orderCondition: any = sortType ? [["selling_price", `${sortType}`]] : [];
-
-    const products = await Product.findAll({
-      limit: count,
-      offset: skip,
-      where: whereCondition,
-      order: orderCondition,
-      include: [{ model: Image, attributes: ["image"] }],
-    });
-
+    let products: any;
+    if (searchKey && sortType) {
+      //finding all products
+      products = await Product.findAll({
+        limit: count,
+        offset: skip,
+        where: { isBlocked: false, name: { [Op.like]: `%${searchKey}%` } },
+        order: [["selling_price", `${sortType}`]],
+        include: [{ model: Image, attributes: ["image"] }],
+      });
+    } else if (searchKey && !sortType) {
+      //finding all products
+      products = await Product.findAll({
+        limit: count,
+        offset: skip,
+        where: { isBlocked: false, name: { [Op.like]: `%${searchKey}%` } },
+        include: [{ model: Image, attributes: ["image"] }],
+      });
+    } else if (!searchKey && sortType) {
+      //finding all products
+      products = await Product.findAll({
+        limit: count,
+        offset: skip,
+        where: { isBlocked: false },
+        order: [["selling_price", `${sortType}`]],
+        include: [{ model: Image, attributes: ["image"] }],
+      });
+    } else {
+      //finding all products
+      products = await Product.findAll({
+        limit: count,
+        offset: skip,
+        where: { isBlocked: false },
+        include: [{ model: Image, attributes: ["image"] }],
+      });
+    }
+    //formatting images array
     const allProducts = products.map((product: any) => {
-      const imageUrls = product.Images.map((image: any) => image.image);
-      return { ...product.toJSON(), Images: imageUrls };
+      const imageNames = product.Images.map((image: any) => image.image);
+      return { ...product.toJSON(), Images: imageNames }; // Replace Images with imageUrls
     });
-
-    return res.status(200).json({ message: "Products fetched successfully.", data: allProducts });
+    return res
+      .status(200)
+      .json({ message: "Products fetched successfully.", data: allProducts });
   } catch (error) {
-    console.error("Error in finding all products function:", error);
+    console.error("Error in finding all products function :", error);
     return res.status(400).json({ message: "Couldn't load all products." });
   }
 };
