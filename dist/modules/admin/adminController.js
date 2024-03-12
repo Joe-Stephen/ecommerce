@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getUserById = exports.getAllOrders = exports.getAllUsers = exports.deleteUser = exports.toggleUserAccess = exports.addProduct = exports.resetPassword = exports.loginAdmin = void 0;
+exports.getUserById = exports.approveOrder = exports.getAllOrders = exports.getAllUsers = exports.deleteUser = exports.toggleUserAccess = exports.addProduct = exports.resetPassword = exports.loginAdmin = void 0;
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const userModel_1 = __importDefault(require("../user/userModel"));
@@ -211,6 +211,39 @@ const getAllOrders = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
         .json({ message: "Fetched all orders.", data: allOrders });
 });
 exports.getAllOrders = getAllOrders;
+const approveOrder = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { orderId } = req.query;
+        if (orderId) {
+            const order = yield orderModel_1.default.findByPk(orderId, {});
+            if (order && order.orderStatus === "To be approved") {
+                order.orderStatus = "Approved";
+                yield (order === null || order === void 0 ? void 0 : order.save());
+                console.log("Order has been approved successfully.");
+                return res
+                    .status(200)
+                    .json({ message: "Order has been approved successfully." });
+            }
+            else if (order && order.orderStatus !== "To be approved") {
+                console.error("This order is already approved.");
+                res.status(400).send("This order is already approved.");
+            }
+            else {
+                console.error("No order found.");
+                res.status(400).send("No order found.");
+            }
+        }
+        else {
+            console.error("Please provide an order id.");
+            res.status(400).send("Please provide an order id.");
+        }
+    }
+    catch (error) {
+        console.error("Error approving the order :", error);
+        res.status(500).send("Error approving the order");
+    }
+});
+exports.approveOrder = approveOrder;
 //get user by id
 const getUserById = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     const { id } = req.params;

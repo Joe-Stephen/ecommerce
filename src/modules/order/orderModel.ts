@@ -33,7 +33,7 @@ class Order extends Model {
       },
       orderStatus: {
         type: DataTypes.STRING(128),
-        defaultValue: "Pending",
+        defaultValue: "To be approved",
       },
     },
     {

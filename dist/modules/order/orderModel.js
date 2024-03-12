@@ -27,7 +27,7 @@ Order.init({
     },
     orderStatus: {
         type: sequelize_1.DataTypes.STRING(128),
-        defaultValue: "Pending",
+        defaultValue: "To be approved",
     },
 }, {
     tableName: "orders",

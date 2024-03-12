@@ -2,6 +2,7 @@ import { RequestHandler } from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
+//importing models
 import User from "../user/userModel";
 import Product from "../product/productModel";
 import Image from "../product/imageModel";
@@ -152,6 +153,7 @@ export const addProduct: RequestHandler = async (req, res, next) => {
   }
 };
 
+//toggling the user access status (block/unblock)
 export const toggleUserAccess: RequestHandler = async (req, res, next) => {
   try {
     const { userId } = req.query;
@@ -198,12 +200,42 @@ export const getAllUsers: RequestHandler = async (req, res, next) => {
 
 //get all orders
 export const getAllOrders: RequestHandler = async (req, res, next) => {
-  console.log("all order function. called");  
+  console.log("all order function. called");
   const allOrders: Order[] = await Order.findAll();
-  console.log("all orders are :",allOrders);  
+  console.log("all orders are :", allOrders);
   return res
     .status(200)
     .json({ message: "Fetched all orders.", data: allOrders });
+};
+
+//approving an order
+export const approveOrder: RequestHandler = async (req, res, next) => {
+  try {
+    const { orderId } = req.query;
+    if (orderId) {
+      const order = await Order.findByPk(orderId as string, {});
+      if (order && order.orderStatus === "To be approved") {
+        order.orderStatus = "Approved";
+        await order?.save();
+        console.log("Order has been approved successfully.");
+        return res
+          .status(200)
+          .json({ message: "Order has been approved successfully." });
+      } else if (order && order.orderStatus !== "To be approved") {
+        console.error("This order is already approved.");
+        res.status(400).send("This order is already approved.");
+      } else {
+        console.error("No order found.");
+        res.status(400).send("No order found.");
+      }
+    } else {
+      console.error("Please provide an order id.");
+      res.status(400).send("Please provide an order id.");
+    }
+  } catch (error) {
+    console.error("Error approving the order :", error);
+    res.status(500).send("Error approving the order");
+  }
 };
 
 //get user by id

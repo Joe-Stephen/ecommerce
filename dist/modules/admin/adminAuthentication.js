@@ -22,9 +22,7 @@ const verifyAdmin = (req, res, next) => __awaiter(void 0, void 0, void 0, functi
         const decoded = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET);
         //get user from the token
         req.body.user = decoded;
-        console.log("decoded is :", decoded.email);
         const user = yield userModel_1.default.findOne({ where: { email: decoded.email } });
-        console.log("isAdmin :", user === null || user === void 0 ? void 0 : user.isAdmin);
         if (user === null || user === void 0 ? void 0 : user.isAdmin) {
             next();
         }

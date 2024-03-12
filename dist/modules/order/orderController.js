@@ -22,14 +22,14 @@ const orderProductsModel_1 = __importDefault(require("./orderProductsModel"));
 const checkOut = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const pendingOrder = yield orderModel_1.default.findAll({
-            where: { userId: 1, orderStatus: "Pending" },
+            where: { userId: 1, orderStatus: "To be approved" },
         });
         if (pendingOrder.length > 0) {
-            console.log("This user has a pending order.");
+            console.log("This user has a pending approval.");
             return res
                 .status(400)
                 .json({
-                message: "Couldn't checkout products as you already have a pending order.",
+                message: "Couldn't checkout products as you already have a pending approval.",
             });
         }
         const userWithCart = yield userModel_1.default.findByPk(1, {

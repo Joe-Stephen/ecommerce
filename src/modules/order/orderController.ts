@@ -11,15 +11,15 @@ import OrderProducts from "./orderProductsModel";
 export const checkOut: RequestHandler = async (req, res, next) => {
   try {
     const pendingOrder = await Order.findAll({
-      where: { userId: 1, orderStatus: "Pending" },
+      where: { userId: 1, orderStatus: "To be approved" },
     });
     if (pendingOrder.length > 0) {
-      console.log("This user has a pending order.");
+      console.log("This user has a pending approval.");
       return res
         .status(400)
         .json({
           message:
-            "Couldn't checkout products as you already have a pending order.",
+            "Couldn't checkout products as you already have a pending approval.",
         });
     }
     const userWithCart = await User.findByPk(1, {
