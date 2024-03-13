@@ -15,6 +15,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.getUserById = exports.approveOrder = exports.getAllOrders = exports.getAllUsers = exports.deleteUser = exports.toggleUserAccess = exports.addProduct = exports.resetPassword = exports.loginAdmin = void 0;
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const sequelize_1 = require("sequelize");
+const moment_1 = __importDefault(require("moment"));
 //importing models
 const userModel_1 = __importDefault(require("../user/userModel"));
 const productModel_1 = __importDefault(require("../product/productModel"));
@@ -207,30 +209,58 @@ exports.getAllUsers = getAllUsers;
 //get all orders
 const getAllOrders = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const allOrders = yield orderModel_1.default.findAll({
+        const date = (0, moment_1.default)();
+        console.log("the date :", date);
+        const formattedDate = date.format('YYYY-MM-DD');
+        console.log("the formatted date :", formattedDate);
+        let queryOptions = {
             include: [
                 {
                     model: orderProductsModel_1.default,
-                    as: 'orderProducts',
+                    as: "orderProducts",
                 },
             ],
             order: [["orderDate", "ASC"]],
+        };
+        const { startDate, endDate } = req.query;
+        if (startDate && endDate) {
+            queryOptions.where = {
+                orderDate: {
+                    [sequelize_1.Op.between]: [startDate, endDate],
+                },
+            };
+        }
+        else if (startDate && !endDate) {
+            queryOptions.where = {
+                orderDate: {
+                    [sequelize_1.Op.gte]: startDate,
+                },
+            };
+        }
+        else if (!startDate && endDate) {
+            queryOptions.where = {
+                orderDate: {
+                    [sequelize_1.Op.lte]: endDate,
+                },
+            };
+        }
+        const allOrders = yield orderModel_1.default.findAll(queryOptions);
+        const formattedOrders = allOrders.map((order) => {
+            return Object.assign({}, order.toJSON());
         });
-        console.log("all Orders are :", allOrders);
-        // const allOrders: Order[] = await Order.findAll({
-        //   order: [["orderDate", "ASC"]],
-        // });
-        // const ordersWithDetails = await Promise.all(
-        //   allOrders.map(async (order: any) => {
-        //     const currProducts = await OrderProducts.findOne({
-        //       where: { orderId: order.id },
-        //     });
-        //     return { ...order.toJSON(), products: currProducts };
-        //   })
-        // );
+        formattedOrders.forEach((order) => {
+            order.orderDate = (0, moment_1.default)(order.orderDate).format('YYYY-MM-DD');
+            order.createdAt = (0, moment_1.default)(order.createdAt).format('YYYY-MM-DD');
+            order.updatedAt = (0, moment_1.default)(order.updatedAt).format('YYYY-MM-DD');
+            order.orderProducts.forEach((product) => {
+                product.createdAt = (0, moment_1.default)(product.createdAt).format('YYYY-MM-DD');
+                product.updatedAt = (0, moment_1.default)(product.updatedAt).format('YYYY-MM-DD');
+            });
+        });
+        console.log("the formatted orders object is :", formattedOrders);
         return res
             .status(200)
-            .json({ message: "Fetched all orders.", data: allOrders });
+            .json({ message: "Fetched all orders.", data: formattedOrders });
     }
     catch (error) {
         console.error("Error fetching all orders. :", error);
@@ -238,6 +268,26 @@ const getAllOrders = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
     }
 });
 exports.getAllOrders = getAllOrders;
+//get all orders
+// export const getAllOrders: RequestHandler = async (req, res, next) => {
+//   try {
+//     const allOrders: Order[] = await Order.findAll({
+//       include: [
+//         {
+//           model: OrderProducts,
+//           as: "orderProducts",
+//         },
+//       ],
+//       order: [["orderDate", "ASC"]],
+//     });
+//     return res
+//       .status(200)
+//       .json({ message: "Fetched all orders.", data: allOrders });
+//   } catch (error) {
+//     console.error("Error fetching all orders. :", error);
+//     res.status(500).send("Error fetching all orders. ");
+//   }
+// };
 //approving an order
 const approveOrder = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {

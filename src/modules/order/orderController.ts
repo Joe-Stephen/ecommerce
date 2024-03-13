@@ -30,6 +30,8 @@ export const checkOut: RequestHandler = async (req, res, next) => {
         },
       ],
     });
+    console.log("the user with cart :", userWithCart);
+    
     const productsInCart = userWithCart?.dataValues.Cart.dataValues.Products;
     const productArray = productsInCart.map(
       (product: any) => product.dataValues
@@ -46,6 +48,7 @@ export const checkOut: RequestHandler = async (req, res, next) => {
       userId: 1,
       totalAmount: grandTotal,
     });
+    
     const promises = productArray.map(async (product: any) => {
       await OrderProducts.create({
         orderId: orderObject.id,

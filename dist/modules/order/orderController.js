@@ -40,6 +40,7 @@ const checkOut = (req, res, next) => __awaiter(void 0, void 0, void 0, function*
                 },
             ],
         });
+        console.log("the user with cart :", userWithCart);
         const productsInCart = userWithCart === null || userWithCart === void 0 ? void 0 : userWithCart.dataValues.Cart.dataValues.Products;
         const productArray = productsInCart.map((product) => product.dataValues);
         const orderProducts = [];

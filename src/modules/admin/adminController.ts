@@ -1,6 +1,8 @@
 import { RequestHandler } from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { Op } from "sequelize";
+import moment from "moment";
 
 //importing models
 import User from "../user/userModel";
@@ -202,7 +204,7 @@ export const getAllUsers: RequestHandler = async (req, res, next) => {
 //get all orders
 export const getAllOrders: RequestHandler = async (req, res, next) => {
   try {
-    const allOrders: Order[] = await Order.findAll({
+    let queryOptions: any = {
       include: [
         {
           model: OrderProducts,
@@ -210,10 +212,43 @@ export const getAllOrders: RequestHandler = async (req, res, next) => {
         },
       ],
       order: [["orderDate", "ASC"]],
+    };
+    const { startDate, endDate } = req.query;
+    if (startDate && endDate) {
+      queryOptions.where = {
+        orderDate: {
+          [Op.between]: [startDate, endDate],
+        },
+      };
+    } else if (startDate && !endDate) {
+      queryOptions.where = {
+        orderDate: {
+          [Op.gte]: startDate,
+        },
+      };
+    } else if (!startDate && endDate) {
+      queryOptions.where = {
+        orderDate: {
+          [Op.lte]: endDate,
+        },
+      };
+    }
+    const allOrders: Order[] = await Order.findAll(queryOptions);
+    const formattedOrders = allOrders.map((order: any) => {
+      return { ...order.toJSON() };
+    });
+    formattedOrders.forEach((order: any) => {
+      order.orderDate = moment(order.orderDate).format("YYYY-MM-DD");
+      order.createdAt = moment(order.createdAt).format("YYYY-MM-DD");
+      order.updatedAt = moment(order.updatedAt).format("YYYY-MM-DD");
+      order.orderProducts.forEach((product: any) => {
+        product.createdAt = moment(product.createdAt).format("YYYY-MM-DD");
+        product.updatedAt = moment(product.updatedAt).format("YYYY-MM-DD");
+      });
     });
     return res
       .status(200)
-      .json({ message: "Fetched all orders.", data: allOrders });
+      .json({ message: "Fetched all orders.", data: formattedOrders });
   } catch (error) {
     console.error("Error fetching all orders. :", error);
     res.status(500).send("Error fetching all orders. ");
