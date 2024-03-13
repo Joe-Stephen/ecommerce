@@ -14,6 +14,8 @@ const orderController_1 = require("../order/orderController");
 //middlewares
 const userAuthentication_1 = __importDefault(require("../user/userAuthentication"));
 //user functionalities
+userRouter.post("/sendOtp", userController_1.sendVerifyMail);
+userRouter.post("/verifyEmail", userController_1.verifyOtp);
 userRouter.post("/", userController_1.createUser);
 userRouter.post("/login", userController_1.loginUser);
 userRouter.patch("/resetPassword", userAuthentication_1.default, userController_1.resetPassword);

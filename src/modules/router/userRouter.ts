@@ -8,6 +8,8 @@ import {
   resetPassword,
   getAllProducts,
   updateUser,
+  sendVerifyMail,
+  verifyOtp,
 } from "../user/userController";
 
 //cart functions
@@ -28,6 +30,8 @@ import {
 import verifyUser from "../user/userAuthentication";
 
 //user functionalities
+userRouter.post("/sendOtp", sendVerifyMail);
+userRouter.post("/verifyEmail", verifyOtp)
 userRouter.post("/", createUser);
 userRouter.post("/login", loginUser);
 userRouter.patch("/resetPassword", verifyUser, resetPassword);

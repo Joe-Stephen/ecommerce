@@ -12,14 +12,16 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateUser = exports.getUserById = exports.getAllUsers = exports.deleteUser = exports.addProduct = exports.resetPassword = exports.getAllProducts = exports.loginUser = exports.createUser = void 0;
+exports.updateUser = exports.getUserById = exports.getAllUsers = exports.deleteUser = exports.addProduct = exports.resetPassword = exports.getAllProducts = exports.loginUser = exports.verifyOtp = exports.sendVerifyMail = exports.createUser = void 0;
 const sequelize_1 = require("sequelize");
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const sendOtp_1 = require("../services/sendOtp");
 //model imports
 const userModel_1 = __importDefault(require("../user/userModel"));
 const imageModel_1 = __importDefault(require("../product/imageModel"));
 const productModel_1 = __importDefault(require("../product/productModel"));
+const verificationsModel_1 = __importDefault(require("./verificationsModel"));
 const createUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     const { username, email, password } = req.body;
     if (!username || !email || !password) {
@@ -48,6 +50,70 @@ const createUser = (req, res, next) => __awaiter(void 0, void 0, void 0, functio
         .json({ message: "User created successfully", data: user });
 });
 exports.createUser = createUser;
+//@desc sending otp for email verification
+//@route POST /sendOtp
+//@access Public
+const sendVerifyMail = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        console.log("send otp function called");
+        const { email } = req.body;
+        if (!email) {
+            return res.status(400).json("Please enter your email.");
+        }
+        console.log(`Received email= ${email}`);
+        const existingUser = yield userModel_1.default.findOne({ where: { email } });
+        if (existingUser) {
+            console.log("This email is already registered!");
+            return res
+                .status(400)
+                .json({ message: "This email is already registered!" });
+        }
+        else {
+            //sending otp
+            yield (0, sendOtp_1.sendOtp)(email);
+            console.log(`Otp has been sent to ${email}.`);
+            return res.status(201).json("Otp has been sent to your email address.");
+        }
+    }
+    catch (error) {
+        console.error("Error in sendOtp function :", error);
+        return res.status(500).json("Unexpected error happened while sending otp.");
+    }
+});
+exports.sendVerifyMail = sendVerifyMail;
+//@desc verifying otp
+//@route POST /verify-otp
+//@access Public
+const verifyOtp = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        console.log("Verify function called");
+        const { otpAttempt, email } = req.body;
+        if (!otpAttempt || !email) {
+            return res.status(400).json("Please enter your otp.");
+        }
+        console.log(`Received otp attempt= ${otpAttempt}`);
+        console.log(`Received email= ${email}`);
+        //checking for an existing user with the same email id
+        const existingDoc = yield verificationsModel_1.default.findOne({ where: { email } });
+        if (!existingDoc) {
+            return res
+                .status(400)
+                .json({ message: "No document found with this email." });
+        }
+        if (otpAttempt === existingDoc.otp) {
+            yield verificationsModel_1.default.destroy({ where: { email } });
+            return res.status(200).json({ message: "Mail verified successfully." });
+        }
+        return res.status(400).json({ message: "Incorrect otp." });
+    }
+    catch (error) {
+        console.error("Error in verifyOtp function :", error);
+        return res
+            .status(500)
+            .json("Unexpected error happened while verifying otp.");
+    }
+});
+exports.verifyOtp = verifyOtp;
 const loginUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { email, password } = req.body;

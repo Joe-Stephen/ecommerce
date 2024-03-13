@@ -209,10 +209,6 @@ exports.getAllUsers = getAllUsers;
 //get all orders
 const getAllOrders = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const date = (0, moment_1.default)();
-        console.log("the date :", date);
-        const formattedDate = date.format('YYYY-MM-DD');
-        console.log("the formatted date :", formattedDate);
         let queryOptions = {
             include: [
                 {
@@ -249,15 +245,14 @@ const getAllOrders = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
             return Object.assign({}, order.toJSON());
         });
         formattedOrders.forEach((order) => {
-            order.orderDate = (0, moment_1.default)(order.orderDate).format('YYYY-MM-DD');
-            order.createdAt = (0, moment_1.default)(order.createdAt).format('YYYY-MM-DD');
-            order.updatedAt = (0, moment_1.default)(order.updatedAt).format('YYYY-MM-DD');
+            order.orderDate = (0, moment_1.default)(order.orderDate).format("YYYY-MM-DD");
+            order.createdAt = (0, moment_1.default)(order.createdAt).format("YYYY-MM-DD");
+            order.updatedAt = (0, moment_1.default)(order.updatedAt).format("YYYY-MM-DD");
             order.orderProducts.forEach((product) => {
-                product.createdAt = (0, moment_1.default)(product.createdAt).format('YYYY-MM-DD');
-                product.updatedAt = (0, moment_1.default)(product.updatedAt).format('YYYY-MM-DD');
+                product.createdAt = (0, moment_1.default)(product.createdAt).format("YYYY-MM-DD");
+                product.updatedAt = (0, moment_1.default)(product.updatedAt).format("YYYY-MM-DD");
             });
         });
-        console.log("the formatted orders object is :", formattedOrders);
         return res
             .status(200)
             .json({ message: "Fetched all orders.", data: formattedOrders });
@@ -268,26 +263,6 @@ const getAllOrders = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
     }
 });
 exports.getAllOrders = getAllOrders;
-//get all orders
-// export const getAllOrders: RequestHandler = async (req, res, next) => {
-//   try {
-//     const allOrders: Order[] = await Order.findAll({
-//       include: [
-//         {
-//           model: OrderProducts,
-//           as: "orderProducts",
-//         },
-//       ],
-//       order: [["orderDate", "ASC"]],
-//     });
-//     return res
-//       .status(200)
-//       .json({ message: "Fetched all orders.", data: allOrders });
-//   } catch (error) {
-//     console.error("Error fetching all orders. :", error);
-//     res.status(500).send("Error fetching all orders. ");
-//   }
-// };
 //approving an order
 const approveOrder = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {

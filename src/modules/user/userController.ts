@@ -1,14 +1,14 @@
-import { RequestHandler, Request } from "express";
+import { RequestHandler } from "express";
 import { Op } from "sequelize";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { sendOtp } from "../services/sendOtp";
 
 //model imports
 import User from "../user/userModel";
 import Image from "../product/imageModel";
 import Product from "../product/productModel";
-import Cart from "../cart/cartModel";
-import CartProducts from "../cart/cartProductsModel";
+import Verifications from "./verificationsModel";
 
 export const createUser: RequestHandler = async (req, res, next) => {
   const { username, email, password } = req.body;
@@ -39,6 +39,67 @@ export const createUser: RequestHandler = async (req, res, next) => {
   return res
     .status(200)
     .json({ message: "User created successfully", data: user });
+};
+
+//@desc sending otp for email verification
+//@route POST /sendOtp
+//@access Public
+export const sendVerifyMail: RequestHandler = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json("Please enter your email.");
+    }
+    console.log(`Received email= ${email}`);
+
+    const existingUser = await User.findOne({ where: { email } });
+    if (existingUser) {
+      console.log("This email is already registered!");
+      return res
+        .status(400)
+        .json({ message: "This email is already registered!" });
+    } else {
+      //sending otp
+      await sendOtp(email);
+      console.log(`Otp has been sent to ${email}.`);
+      return res.status(201).json("Otp has been sent to your email address.");
+    }
+  } catch (error) {
+    console.error("Error in sendOtp function :", error);
+    return res.status(500).json("Unexpected error happened while sending otp.");
+  }
+};
+
+//@desc verifying otp
+//@route POST /verify-otp
+//@access Public
+export const verifyOtp: RequestHandler = async (req, res, next) => {
+  try {
+    const { otpAttempt, email } = req.body;
+    if (!otpAttempt || !email) {
+      return res.status(400).json("Please enter your otp.");
+    }
+    console.log(`Received otp attempt= ${otpAttempt}`);
+    console.log(`Received email= ${email}`);
+
+    //checking for an existing user with the same email id
+    const existingDoc = await Verifications.findOne({ where: { email } });
+    if (!existingDoc) {
+      return res
+        .status(400)
+        .json({ message: "No document found with this email." });
+    }
+    if (otpAttempt === existingDoc.otp) {
+      await Verifications.destroy({ where: { email } });
+      return res.status(200).json({ message: "Mail verified successfully." });
+    }
+    return res.status(400).json({ message: "Incorrect otp." });
+  } catch (error) {
+    console.error("Error in verifyOtp function :", error);
+    return res
+      .status(500)
+      .json("Unexpected error happened while verifying otp.");
+  }
 };
 
 export const loginUser: RequestHandler = async (req, res, next) => {
