@@ -110,6 +110,9 @@ export const verifyOtp: RequestHandler = async (req, res, next) => {
 
 export const loginUser: RequestHandler = async (req, res, next) => {
   try {
+    console.log("user login function called ");
+    console.log("req.body :", req.body);
+
     const { email, password } = req.body;
     if (!email || !password) {
       console.log("Please provide all the details.");

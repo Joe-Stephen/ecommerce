@@ -17,6 +17,7 @@ const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const sequelize_1 = require("sequelize");
 const moment_1 = __importDefault(require("moment"));
+const sendMail_1 = require("../services/sendMail");
 //importing models
 const userModel_1 = __importDefault(require("../user/userModel"));
 const productModel_1 = __importDefault(require("../product/productModel"));
@@ -266,23 +267,73 @@ exports.getAllOrders = getAllOrders;
 //approving an order
 const approveOrder = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
+        //getting user id from request query
         const { orderId } = req.query;
         if (orderId) {
-            const order = yield orderModel_1.default.findByPk(orderId, {});
+            const order = yield orderModel_1.default.findByPk(orderId, {
+                include: [
+                    {
+                        model: orderProductsModel_1.default,
+                        as: "orderProducts",
+                        include: [productModel_1.default],
+                    },
+                ],
+            });
+            //  res
+            // .status(200)
+            // .json({data:order, message: "Order has been approved successfully." });
+            console.log("order with products data :", order === null || order === void 0 ? void 0 : order.dataValues.orderProducts);
+            if (!order) {
+                console.log("No order found with this order id.");
+                return res
+                    .status(400)
+                    .json({ message: "No order found with this order id." });
+            }
+            //getting user from user model
+            const user = yield userModel_1.default.findByPk(order === null || order === void 0 ? void 0 : order.userId);
+            if (!user) {
+                console.log("No user found. User is not logged in.");
+                return res
+                    .status(400)
+                    .json({ message: "No user found. User is not logged in." });
+            }
+            //checking if the order is not null and order status is not approved already
             if (order && order.orderStatus === "To be approved") {
+                //if yes, changing the status to "Approved"
                 order.orderStatus = "Approved";
                 yield (order === null || order === void 0 ? void 0 : order.save());
+                //using mail service to notify the user about the status change
+                let productInfo = [];
+                order === null || order === void 0 ? void 0 : order.dataValues.orderProducts.forEach((item) => {
+                    console.log("Each product is :", item.Product);
+                    productInfo.push(`
+          Product name: ${item.Product.name} Price: ₹${item.Product.selling_price}
+          `);
+                });
+                // const products=order?.dataValues.map((product:any)=>{
+                //   return product;
+                //   // return {name:product.name.toString(), price:product.selling_price, quantity:product.quantity}
+                // })
+                console.log("The array of products name :", productInfo);
+                const email = user.email;
+                const subject = "Order approval notification.";
+                const text = `Your order has been approved by admin.
+        Order id: ${orderId}
+        Order date: ${(0, moment_1.default)(order.orderDate).format("YYYY-MM-DD")}
+        products: ${productInfo}
+        Total amount: ₹${order.totalAmount}/-`;
+                yield (0, sendMail_1.sendMail)(email, subject, text);
                 console.log("Order has been approved successfully.");
                 return res
                     .status(200)
                     .json({ message: "Order has been approved successfully." });
             }
             else if (order && order.orderStatus !== "To be approved") {
-                console.error("This order is already approved.");
+                console.log("This order is already approved.");
                 res.status(400).send("This order is already approved.");
             }
             else {
-                console.error("No order found.");
+                console.log("No order found.");
                 res.status(400).send("No order found.");
             }
         }

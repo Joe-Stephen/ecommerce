@@ -21,8 +21,19 @@ const orderModel_1 = __importDefault(require("./orderModel"));
 const orderProductsModel_1 = __importDefault(require("./orderProductsModel"));
 const checkOut = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
+        const loggedInUser = req.body.user;
+        console.log("the user in req is :", loggedInUser.email);
+        if (!loggedInUser) {
+            console.log("No user found. User is not logged in.");
+            return res.status(400).json({ message: "No user found. User is not logged in." });
+        }
+        const user = yield userModel_1.default.findOne({ where: { email: loggedInUser.email } });
+        if (!user) {
+            console.log("No user found. User is not logged in.");
+            return res.status(400).json({ message: "No user found. User is not logged in." });
+        }
         const pendingOrder = yield orderModel_1.default.findAll({
-            where: { userId: 1, orderStatus: "To be approved" },
+            where: { userId: user.id, orderStatus: "To be approved" },
         });
         if (pendingOrder.length > 0) {
             console.log("This user has a pending approval.");
@@ -32,7 +43,7 @@ const checkOut = (req, res, next) => __awaiter(void 0, void 0, void 0, function*
                 message: "Couldn't checkout products as you already have a pending approval.",
             });
         }
-        const userWithCart = yield userModel_1.default.findByPk(1, {
+        const userWithCart = yield userModel_1.default.findByPk(user.id, {
             include: [
                 {
                     model: cartModel_1.default,
@@ -52,7 +63,7 @@ const checkOut = (req, res, next) => __awaiter(void 0, void 0, void 0, function*
             orderProducts.push(product.id);
         });
         const orderObject = yield orderModel_1.default.create({
-            userId: 1,
+            userId: user.id,
             totalAmount: grandTotal,
         });
         const promises = productArray.map((product) => __awaiter(void 0, void 0, void 0, function* () {

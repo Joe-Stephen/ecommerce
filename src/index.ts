@@ -44,6 +44,9 @@ Product.belongsToMany(Order, { through: OrderProducts });
 User.hasMany(Order, { foreignKey: "userId" });
 Order.hasMany(OrderProducts, { foreignKey: 'orderId', as: 'orderProducts' }); 
 
+Product.hasMany(OrderProducts, { foreignKey: 'productId' });
+OrderProducts.belongsTo(Product,{foreignKey: 'productId'});
+
 // syncing models and starting server
 sequelize
   .sync({ force: false })

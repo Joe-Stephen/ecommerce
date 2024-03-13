@@ -20,7 +20,9 @@ const cartModel_1 = __importDefault(require("../cart/cartModel"));
 const cartProductsModel_1 = __importDefault(require("../cart/cartProductsModel"));
 const getUserCart = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const userWithCart = yield userModel_1.default.findByPk(1, {
+        const loggedInUser = req.body.user;
+        console.log("the user in req is :", loggedInUser.email);
+        const userWithCart = yield userModel_1.default.findOne({ where: { email: loggedInUser.email },
             include: [
                 {
                     model: cartModel_1.default,
@@ -28,6 +30,10 @@ const getUserCart = (req, res, next) => __awaiter(void 0, void 0, void 0, functi
                 },
             ],
         });
+        if (!(userWithCart === null || userWithCart === void 0 ? void 0 : userWithCart.dataValues.Cart)) {
+            console.log("User cart is empty.");
+            return res.status(400).json({ message: "Your cart is empty." });
+        }
         const productsInCart = userWithCart === null || userWithCart === void 0 ? void 0 : userWithCart.dataValues.Cart.dataValues.Products;
         console.log("The products in cart object :", productsInCart);
         const productArray = productsInCart.map((product) => product.dataValues);
@@ -51,11 +57,26 @@ const getUserCart = (req, res, next) => __awaiter(void 0, void 0, void 0, functi
 exports.getUserCart = getUserCart;
 const addToCart = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { cartId, productId } = req.query;
-        let userCart = yield cartModel_1.default.findOne({ where: { userId: 1 } });
+        const loggedInUser = req.body.user;
+        console.log("the user in req is :", loggedInUser.email);
+        const { productId } = req.query;
+        if (!productId) {
+            console.log("No productId in query params.");
+            return res.status(400).json({ message: "Please provide a product id as query param." });
+        }
+        if (!loggedInUser) {
+            console.log("No user found. User is not logged in.");
+            return res.status(400).json({ message: "No user found. User is not logged in." });
+        }
+        const user = yield userModel_1.default.findOne({ where: { email: loggedInUser.email } });
+        if (!user) {
+            console.log("No user found. User is not logged in.");
+            return res.status(400).json({ message: "No user found. User is not logged in." });
+        }
+        let userCart = yield cartModel_1.default.findOne({ where: { userId: user.id } });
         if (!userCart) {
             userCart = yield cartModel_1.default.create({
-                userId: 1,
+                userId: user.id,
             });
             yield cartProductsModel_1.default.create({
                 cartId: userCart.id,
@@ -65,14 +86,14 @@ const addToCart = (req, res, next) => __awaiter(void 0, void 0, void 0, function
             console.log("Product has been added to cart.");
             return res
                 .status(200)
-                .json({ message: "Product has been added to cart." });
+                .json({ message: "Created cart and added product to cart." });
         }
         else {
             const existingProduct = yield cartProductsModel_1.default.findOne({
-                where: { cartId: cartId, productId: productId },
+                where: { cartId: userCart.id, productId: productId },
             });
             if (!existingProduct) {
-                cartProductsModel_1.default.create({ cartId: cartId, productId: productId, quantity: 1 });
+                cartProductsModel_1.default.create({ cartId: userCart.id, productId: productId, quantity: 1 });
                 console.log("Product has been added to cart.");
                 return res
                     .status(200)
@@ -81,10 +102,10 @@ const addToCart = (req, res, next) => __awaiter(void 0, void 0, void 0, function
             else {
                 existingProduct.quantity += 1;
                 yield existingProduct.save();
-                console.log("Product has been added to cart.");
+                console.log("Product quantity has been increased.");
                 return res
                     .status(200)
-                    .json({ message: "Product has been added to cart." });
+                    .json({ message: "Product quantity has been increased." });
             }
         }
     }

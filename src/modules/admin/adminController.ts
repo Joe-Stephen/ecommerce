@@ -3,6 +3,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { Op } from "sequelize";
 import moment from "moment";
+import { sendMail } from "../services/sendMail";
 
 //importing models
 import User from "../user/userModel";
@@ -258,21 +259,73 @@ export const getAllOrders: RequestHandler = async (req, res, next) => {
 //approving an order
 export const approveOrder: RequestHandler = async (req, res, next) => {
   try {
+    //getting user id from request query
     const { orderId } = req.query;
     if (orderId) {
-      const order = await Order.findByPk(orderId as string, {});
+      const order = await Order.findByPk(orderId as string, {
+        include: [
+          {
+            model: OrderProducts,
+            as: "orderProducts",
+            include:[Product],
+          },
+        ],
+      });
+      //  res
+      // .status(200)
+      // .json({data:order, message: "Order has been approved successfully." });
+      console.log("order with products data :",order?.dataValues.orderProducts);  
+
+      if (!order) {
+        console.log("No order found with this order id.");
+        return res
+          .status(400)
+          .json({ message: "No order found with this order id." });
+      }
+      //getting user from user model
+      const user = await User.findByPk(order?.userId);
+      if (!user) {
+        console.log("No user found. User is not logged in.");
+        return res
+          .status(400)
+          .json({ message: "No user found. User is not logged in." });
+      }
+      //checking if the order is not null and order status is not approved already
       if (order && order.orderStatus === "To be approved") {
+        //if yes, changing the status to "Approved"
         order.orderStatus = "Approved";
         await order?.save();
+        //using mail service to notify the user about the status change
+        let productInfo:string[]=[];
+        order?.dataValues.orderProducts.forEach((item:any)=>{
+          console.log("Each product is :", item.Product); 
+          productInfo.push(`
+          Product name: ${item.Product.name} Price: ₹${item.Product.selling_price}
+          `);       
+        })
+        // const products=order?.dataValues.map((product:any)=>{
+        //   return product;
+
+        //   // return {name:product.name.toString(), price:product.selling_price, quantity:product.quantity}
+        // })
+        console.log("The array of products name :",productInfo);        
+        const email = user.email;
+        const subject = "Order approval notification.";
+        const text = `Your order has been approved by admin.
+        Order id: ${orderId}
+        Order date: ${moment(order.orderDate).format("YYYY-MM-DD")}
+        products: ${productInfo}
+        Total amount: ₹${order.totalAmount}/-`;
+        await sendMail(email, subject, text);
         console.log("Order has been approved successfully.");
         return res
           .status(200)
           .json({ message: "Order has been approved successfully." });
       } else if (order && order.orderStatus !== "To be approved") {
-        console.error("This order is already approved.");
+        console.log("This order is already approved.");
         res.status(400).send("This order is already approved.");
       } else {
-        console.error("No order found.");
+        console.log("No order found.");
         res.status(400).send("No order found.");
       }
     } else {

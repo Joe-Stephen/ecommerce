@@ -120,6 +120,8 @@ const verifyOtp = (req, res, next) => __awaiter(void 0, void 0, void 0, function
 exports.verifyOtp = verifyOtp;
 const loginUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
+        console.log("user login function called ");
+        console.log("req.body :", req.body);
         const { email, password } = req.body;
         if (!email || !password) {
             console.log("Please provide all the details.");

@@ -14,19 +14,19 @@ const orderController_1 = require("../order/orderController");
 //middlewares
 const userAuthentication_1 = __importDefault(require("../user/userAuthentication"));
 //user functionalities
+userRouter.post("/login", userController_1.loginUser);
 userRouter.post("/sendOtp", userController_1.sendVerifyMail);
 userRouter.post("/verifyEmail", userController_1.verifyOtp);
 userRouter.post("/", userController_1.createUser);
-userRouter.post("/login", userController_1.loginUser);
 userRouter.patch("/resetPassword", userAuthentication_1.default, userController_1.resetPassword);
 userRouter.get("/products", userController_1.getAllProducts);
 userRouter.put("/:id", userController_1.updateUser);
 //cart functionalities
-userRouter.get("/cart", cartController_1.getUserCart);
-userRouter.post("/cart", cartController_1.addToCart);
-userRouter.patch("/decreaseCartQuantity", cartController_1.decreaseCartQuantity);
-userRouter.patch("/increaseCartQuantity", cartController_1.increaseCartQuantity);
+userRouter.get("/cart", userAuthentication_1.default, cartController_1.getUserCart);
+userRouter.post("/cart", userAuthentication_1.default, cartController_1.addToCart);
+userRouter.patch("/decreaseCartQuantity", userAuthentication_1.default, cartController_1.decreaseCartQuantity);
+userRouter.patch("/increaseCartQuantity", userAuthentication_1.default, cartController_1.increaseCartQuantity);
 userRouter.delete("/removeCartItem", cartController_1.removeCartItem);
 //order functionalities
-userRouter.post("/checkOut", orderController_1.checkOut);
+userRouter.post("/checkOut", userAuthentication_1.default, orderController_1.checkOut);
 exports.default = userRouter;

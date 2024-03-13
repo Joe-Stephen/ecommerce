@@ -9,9 +9,21 @@ import Order from "./orderModel";
 import OrderProducts from "./orderProductsModel";
 
 export const checkOut: RequestHandler = async (req, res, next) => {
-  try {
+  try {    
+    const loggedInUser=req.body.user;
+    console.log("the user in req is :", loggedInUser.email);
+    
+    if(!loggedInUser){
+      console.log("No user found. User is not logged in.");
+      return res.status(400).json({ message: "No user found. User is not logged in." }); 
+    }
+    const user=await User.findOne({where:{email:loggedInUser.email}})
+    if(!user){
+      console.log("No user found. User is not logged in.");
+      return res.status(400).json({ message: "No user found. User is not logged in." }); 
+    }
     const pendingOrder = await Order.findAll({
-      where: { userId: 1, orderStatus: "To be approved" },
+      where: { userId:user.id , orderStatus: "To be approved" },
     });
     if (pendingOrder.length > 0) {
       console.log("This user has a pending approval.");
@@ -22,7 +34,7 @@ export const checkOut: RequestHandler = async (req, res, next) => {
             "Couldn't checkout products as you already have a pending approval.",
         });
     }
-    const userWithCart = await User.findByPk(1, {
+    const userWithCart = await User.findByPk(user.id, {
       include: [
         {
           model: Cart,
@@ -45,7 +57,7 @@ export const checkOut: RequestHandler = async (req, res, next) => {
       orderProducts.push(product.id);
     });
     const orderObject: any = await Order.create({
-      userId: 1,
+      userId: user.id,
       totalAmount: grandTotal,
     });
     

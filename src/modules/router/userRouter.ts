@@ -30,22 +30,22 @@ import {
 import verifyUser from "../user/userAuthentication";
 
 //user functionalities
+userRouter.post("/login", loginUser);
 userRouter.post("/sendOtp", sendVerifyMail);
 userRouter.post("/verifyEmail", verifyOtp)
 userRouter.post("/", createUser);
-userRouter.post("/login", loginUser);
 userRouter.patch("/resetPassword", verifyUser, resetPassword);
 userRouter.get("/products", getAllProducts);
 userRouter.put("/:id", updateUser);
 
 //cart functionalities
-userRouter.get("/cart", getUserCart);
-userRouter.post("/cart", addToCart);
-userRouter.patch("/decreaseCartQuantity", decreaseCartQuantity);
-userRouter.patch("/increaseCartQuantity", increaseCartQuantity);
+userRouter.get("/cart", verifyUser, getUserCart);
+userRouter.post("/cart", verifyUser, addToCart);
+userRouter.patch("/decreaseCartQuantity", verifyUser, decreaseCartQuantity);
+userRouter.patch("/increaseCartQuantity", verifyUser, increaseCartQuantity);
 userRouter.delete("/removeCartItem", removeCartItem);
 
 //order functionalities
-userRouter.post("/checkOut", checkOut);
+userRouter.post("/checkOut", verifyUser, checkOut);
 
 export default userRouter;

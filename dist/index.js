@@ -40,6 +40,8 @@ orderModel_1.default.belongsToMany(productModel_1.default, { through: orderProdu
 productModel_1.default.belongsToMany(orderModel_1.default, { through: orderProductsModel_1.default });
 userModel_1.default.hasMany(orderModel_1.default, { foreignKey: "userId" });
 orderModel_1.default.hasMany(orderProductsModel_1.default, { foreignKey: 'orderId', as: 'orderProducts' });
+productModel_1.default.hasMany(orderProductsModel_1.default, { foreignKey: 'productId' });
+orderProductsModel_1.default.belongsTo(productModel_1.default, { foreignKey: 'productId' });
 // syncing models and starting server
 db_1.default
     .sync({ force: false })
