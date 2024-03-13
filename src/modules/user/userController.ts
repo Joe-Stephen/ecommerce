@@ -1,8 +1,9 @@
 import { RequestHandler } from "express";
 import { Op } from "sequelize";
+import { generateOtp } from "../services/otpGenerator";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { sendOtp } from "../services/sendOtp";
+import { sendMail } from "../services/sendMail";
 
 //model imports
 import User from "../user/userModel";
@@ -59,8 +60,13 @@ export const sendVerifyMail: RequestHandler = async (req, res, next) => {
         .status(400)
         .json({ message: "This email is already registered!" });
     } else {
+      const otp: string = generateOtp();
+      const subject: string = "Register OTP Verification";
+      const text: string = `Your OTP for verification is ${otp}`;
       //sending otp
-      await sendOtp(email);
+      await sendMail(email, subject, text);
+      const verificationDoc = await Verifications.create({ email, otp });
+      console.log(`OTP has been saved to verifications : ${verificationDoc}`);
       console.log(`Otp has been sent to ${email}.`);
       return res.status(201).json("Otp has been sent to your email address.");
     }

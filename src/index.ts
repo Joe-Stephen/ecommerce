@@ -25,57 +25,6 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/", userRouter);
 app.use("/admin", adminRouter);
 
-//cart syncing
-// Cart.sync()
-//   .then(() => {
-//     console.log("Cart synchronized successfully.");
-//   })
-//   .catch((error) => {
-//     console.error("Error synchronizing cart model:", error);
-//   });
-// CartProducts.sync()
-//   .then(() => {
-//     console.log("CartProduct synchronized successfully.");
-//   })
-//   .catch((error) => {
-//     console.error("Error synchronizing CartProduct model:", error);
-//   });
-// Order.sync()
-//   .then(() => {
-//     console.log("Order synchronized successfully.");
-//   })
-//   .catch((error) => {
-//     console.error("Error synchronizing Order model:", error);
-//   });
-//   OrderProducts.sync()
-//   .then(() => {
-//     console.log("OrderProducts synchronized successfully.");
-//   })
-//   .catch((error) => {
-//     console.error("Error synchronizing Image model:", error);
-//   });
-// User.sync()
-//   .then(() => {
-//     console.log("User synchronized successfully.");
-//   })
-//   .catch((error) => {
-//     console.error("Error synchronizing cart model:", error);
-//   });
-// Product.sync()
-//   .then(() => {
-//     console.log("Product synchronized successfully.");
-//   })
-//   .catch((error) => {
-//     console.error("Error synchronizing cart model:", error);
-//   });
-// Image.sync()
-//   .then(() => {
-//     console.log("Image synchronized successfully.");
-//   })
-//   .catch((error) => {
-//     console.error("Error synchronizing Image model:", error);
-//   });
-
 // associations
 
 //image associations

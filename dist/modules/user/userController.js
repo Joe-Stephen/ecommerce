@@ -14,9 +14,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.updateUser = exports.getUserById = exports.getAllUsers = exports.deleteUser = exports.addProduct = exports.resetPassword = exports.getAllProducts = exports.loginUser = exports.verifyOtp = exports.sendVerifyMail = exports.createUser = void 0;
 const sequelize_1 = require("sequelize");
+const otpGenerator_1 = require("../services/otpGenerator");
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-const sendOtp_1 = require("../services/sendOtp");
+const sendMail_1 = require("../services/sendMail");
 //model imports
 const userModel_1 = __importDefault(require("../user/userModel"));
 const imageModel_1 = __importDefault(require("../product/imageModel"));
@@ -55,7 +56,6 @@ exports.createUser = createUser;
 //@access Public
 const sendVerifyMail = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        console.log("send otp function called");
         const { email } = req.body;
         if (!email) {
             return res.status(400).json("Please enter your email.");
@@ -69,8 +69,13 @@ const sendVerifyMail = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
                 .json({ message: "This email is already registered!" });
         }
         else {
+            const otp = (0, otpGenerator_1.generateOtp)();
+            const subject = "Register OTP Verification";
+            const text = `Your OTP for verification is ${otp}`;
             //sending otp
-            yield (0, sendOtp_1.sendOtp)(email);
+            yield (0, sendMail_1.sendMail)(email, subject, text);
+            const verificationDoc = yield verificationsModel_1.default.create({ email, otp });
+            console.log(`OTP has been saved to verifications : ${verificationDoc}`);
             console.log(`Otp has been sent to ${email}.`);
             return res.status(201).json("Otp has been sent to your email address.");
         }
@@ -86,7 +91,6 @@ exports.sendVerifyMail = sendVerifyMail;
 //@access Public
 const verifyOtp = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        console.log("Verify function called");
         const { otpAttempt, email } = req.body;
         if (!otpAttempt || !email) {
             return res.status(400).json("Please enter your otp.");
