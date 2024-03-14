@@ -3,7 +3,10 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { Op } from "sequelize";
 import moment from "moment";
+
+//importing services
 import { sendMail } from "../services/sendMail";
+import  notify  from "../services/notify";
 
 //importing models
 import User from "../user/userModel";
@@ -87,8 +90,6 @@ export const resetPassword: RequestHandler = async (req, res, next) => {
 //creating new product
 export const addProduct: RequestHandler = async (req, res, next) => {
   try {
-    console.log("data in body :", req.body);
-    console.log("files in upload :", req.files);
     const { name, brand, description, category, regular_price, selling_price } =
       req.body;
 
@@ -154,6 +155,88 @@ export const addProduct: RequestHandler = async (req, res, next) => {
   } catch (error) {
     console.error("Error creating product:", error);
     res.status(500).send("Error creating product");
+  }
+};
+
+//updating a product
+export const updateProduct: RequestHandler = async (req, res, next) => {
+  try {
+    const { productId } = req.query;
+    if (!productId) {
+      console.log("Please provide the productId.");
+      return res.status(400).json({ message: "Please provide the productId." });
+    }
+    const { name, brand, description, category, regular_price, selling_price } =
+      req.body;
+    if (
+      !name ||
+      !brand ||
+      !description ||
+      !category ||
+      !regular_price ||
+      !selling_price
+    ) {
+      console.log("Please provide all the details.");
+      return res
+        .status(400)
+        .json({ message: "Please provide all the details." });
+    }
+    const formData = {
+      name: name.trim(),
+      brand: brand.trim(),
+      description: description.trim(),
+      category: category.trim(),
+      regular_price: parseInt(regular_price),
+      selling_price: parseInt(selling_price),
+    };
+    //name validation rules
+    const nameRegex = /^[A-Za-z0-9\s]+$/;
+    if (!nameRegex.test(formData.name)) {
+      return res.status(400).json({ message: "Invalid name." });
+    }
+    const existingProduct = await Product.findOne({
+      where: { name: name, id: { [Op.ne]: productId } },
+    });
+    if (existingProduct) {
+      return res
+        .status(400)
+        .json({ message: "A product with this name already exists." });
+    }
+
+    //price validations
+    if (formData.selling_price > formData.regular_price) {
+      return res.status(400).json({
+        message: "Selling price shouldn't be greater than regular price.",
+      });
+    }
+
+    //updating the product
+    const newProduct = await Product.update(formData, {
+      where: { id: productId },
+    });
+
+    //clearing existing images
+    await Image.destroy({ where: { productId: productId } });
+
+    //uploading image files
+    const promises = (req.files as File[] | undefined)?.map(
+      async (file: any) => {
+        await Image.create({
+          productId: productId,
+          image: file.originalname,
+        });
+      }
+    );
+
+    if (promises) {
+      await Promise.all(promises);
+    }
+    res
+      .status(200)
+      .json({ message: "Product updated successfully", data: newProduct });
+  } catch (error) {
+    console.error("Error updating product:", error);
+    res.status(500).send("Error updating product");
   }
 };
 
@@ -267,15 +350,10 @@ export const approveOrder: RequestHandler = async (req, res, next) => {
           {
             model: OrderProducts,
             as: "orderProducts",
-            include:[Product],
+            include: [Product],
           },
         ],
       });
-      //  res
-      // .status(200)
-      // .json({data:order, message: "Order has been approved successfully." });
-      console.log("order with products data :",order?.dataValues.orderProducts);  
-
       if (!order) {
         console.log("No order found with this order id.");
         return res
@@ -294,26 +372,31 @@ export const approveOrder: RequestHandler = async (req, res, next) => {
       if (order && order.orderStatus === "To be approved") {
         //if yes, changing the status to "Approved"
         order.orderStatus = "Approved";
+        const currDate = new Date();
+        order.expectedDeliveryDate = new Date(currDate);
+        order.expectedDeliveryDate.setDate(currDate.getDate() + 3);
         await order?.save();
+        //creating notification info
+        const userId: number = order.userId;
+        const label: string = "Order approved!";
+        const content: string = `Your order with id:${order.id} has been approved by admin.`;
+        //calling notify service
+        await notify(userId, label, content);
         //using mail service to notify the user about the status change
-        let productInfo:string[]=[];
-        order?.dataValues.orderProducts.forEach((item:any)=>{
-          console.log("Each product is :", item.Product); 
+        let productInfo: string[] = [];
+        order?.dataValues.orderProducts.forEach((item: any) => {
           productInfo.push(`
           Product name: ${item.Product.name} Price: ₹${item.Product.selling_price}
-          `);       
-        })
-        // const products=order?.dataValues.map((product:any)=>{
-        //   return product;
-
-        //   // return {name:product.name.toString(), price:product.selling_price, quantity:product.quantity}
-        // })
-        console.log("The array of products name :",productInfo);        
+          `);
+        });
         const email = user.email;
         const subject = "Order approval notification.";
         const text = `Your order has been approved by admin.
         Order id: ${orderId}
-        Order date: ${moment(order.orderDate).format("YYYY-MM-DD")}
+        Order date: ${moment(order.orderDate).format("DD-MM-YYYY")}
+        Expected delivery date:${moment(order.expectedDeliveryDate).format(
+          "DD-MM-YYYY"
+        )}
         products: ${productInfo}
         Total amount: ₹${order.totalAmount}/-`;
         await sendMail(email, subject, text);

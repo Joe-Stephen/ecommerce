@@ -13,6 +13,7 @@ const adminAuthentication_1 = __importDefault(require("../admin/adminAuthenticat
 //admin functionalities
 adminRouter.post("/login", adminController_1.loginAdmin);
 adminRouter.post("/product", adminAuthentication_1.default, multerMiddleware_1.default.array("images"), adminController_1.addProduct);
+adminRouter.post("/updateProduct", adminAuthentication_1.default, multerMiddleware_1.default.array("images"), adminController_1.updateProduct);
 adminRouter.get("/", adminAuthentication_1.default, adminController_1.getAllUsers);
 adminRouter.get("/orders", adminAuthentication_1.default, adminController_1.getAllOrders);
 adminRouter.patch("/approveOrder", adminController_1.approveOrder);

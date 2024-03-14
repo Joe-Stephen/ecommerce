@@ -23,12 +23,21 @@ const verifyAdmin = (req, res, next) => __awaiter(void 0, void 0, void 0, functi
         //get user from the token
         req.body.user = decoded;
         const user = yield userModel_1.default.findOne({ where: { email: decoded.email } });
-        if (user === null || user === void 0 ? void 0 : user.isAdmin) {
-            next();
+        const currentTime = Math.floor(Date.now() / 1000);
+        if (currentTime < decoded.exp) {
+            if (user === null || user === void 0 ? void 0 : user.isAdmin) {
+                next();
+            }
+            else {
+                console.log("You are not an admin.");
+                return res.status(401).json({ message: "You are not an admin." });
+            }
         }
         else {
-            console.log("You are not an admin.");
-            return res.status(401).json({ message: "You are not an admin." });
+            console.log("Token has been expired!");
+            return res
+                .status(401)
+                .json({ message: "Your token has been expired, please login again." });
         }
     }
     catch (error) {

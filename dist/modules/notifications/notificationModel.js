@@ -5,9 +5,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const sequelize_1 = require("sequelize");
 const db_1 = __importDefault(require("../config/db"));
-class Order extends sequelize_1.Model {
+class Notification extends sequelize_1.Model {
 }
-Order.init({
+Notification.init({
     id: {
         type: sequelize_1.DataTypes.INTEGER.UNSIGNED,
         autoIncrement: true,
@@ -17,24 +17,20 @@ Order.init({
         type: sequelize_1.DataTypes.INTEGER.UNSIGNED,
         allowNull: false,
     },
-    orderDate: {
-        type: sequelize_1.DataTypes.DATE,
-        defaultValue: sequelize_1.DataTypes.NOW,
-    },
-    totalAmount: {
-        type: sequelize_1.DataTypes.INTEGER.UNSIGNED,
+    label: {
+        type: sequelize_1.DataTypes.STRING(128),
         allowNull: false,
     },
-    orderStatus: {
+    content: {
         type: sequelize_1.DataTypes.STRING(128),
-        defaultValue: "To be approved",
+        allowNull: false,
     },
-    expectedDeliveryDate: {
-        type: sequelize_1.DataTypes.DATE,
-        defaultValue: null,
+    checked: {
+        type: sequelize_1.DataTypes.BOOLEAN,
+        defaultValue: false,
     },
 }, {
-    tableName: "orders",
+    tableName: "notifications",
     sequelize: db_1.default,
 });
-exports.default = Order;
+exports.default = Notification;

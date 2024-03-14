@@ -12,6 +12,8 @@ import CartProducts from "./modules/cart/cartProductsModel";
 import Order from "./modules/order/orderModel";
 import OrderProducts from "./modules/order/orderProductsModel";
 import adminRouter from "./modules/router/adminRouter";
+import Cancel from "./modules/order/cancelOrderModel";
+import Notification from "./modules/notifications/notificationModel";
 
 dotenv.config();
 const PORT = 3000 || process.env.PORT;
@@ -42,10 +44,19 @@ Order.belongsTo(User, { foreignKey: "userId" });
 Order.belongsToMany(Product, { through: OrderProducts });
 Product.belongsToMany(Order, { through: OrderProducts });
 User.hasMany(Order, { foreignKey: "userId" });
-Order.hasMany(OrderProducts, { foreignKey: 'orderId', as: 'orderProducts' }); 
+Order.hasMany(OrderProducts, { foreignKey: "orderId", as: "orderProducts" });
 
-Product.hasMany(OrderProducts, { foreignKey: 'productId' });
-OrderProducts.belongsTo(Product,{foreignKey: 'productId'});
+//product with orderProducts
+Product.hasMany(OrderProducts, { foreignKey: "productId" });
+OrderProducts.belongsTo(Product, { foreignKey: "productId" });
+
+//cancel order associations
+Cancel.belongsTo(Order, { foreignKey: "orderId" });
+Order.hasOne(Cancel, { foreignKey: "orderId" });
+
+//notifications associations
+Notification.belongsTo(User, {foreignKey:"userId"});
+User.hasMany(Notification, {foreignKey:"userId"});
 
 // syncing models and starting server
 sequelize

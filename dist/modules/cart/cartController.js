@@ -21,7 +21,6 @@ const cartProductsModel_1 = __importDefault(require("../cart/cartProductsModel")
 const getUserCart = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const loggedInUser = req.body.user;
-        console.log("the user in req is :", loggedInUser.email);
         const userWithCart = yield userModel_1.default.findOne({ where: { email: loggedInUser.email },
             include: [
                 {

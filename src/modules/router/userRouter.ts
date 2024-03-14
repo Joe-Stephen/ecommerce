@@ -28,11 +28,13 @@ import {
 
 //middlewares
 import verifyUser from "../user/userAuthentication";
+import { getAllNotifications } from "../notifications/notificationController";
 
 //user functionalities
 userRouter.post("/login", loginUser);
 userRouter.post("/sendOtp", sendVerifyMail);
-userRouter.post("/verifyEmail", verifyOtp)
+userRouter.post("/verifyEmail", verifyOtp);
+userRouter.get("/notifications", verifyUser, getAllNotifications);
 userRouter.post("/", createUser);
 userRouter.patch("/resetPassword", verifyUser, resetPassword);
 userRouter.get("/products", getAllProducts);

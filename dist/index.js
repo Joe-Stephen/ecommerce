@@ -16,6 +16,8 @@ const cartProductsModel_1 = __importDefault(require("./modules/cart/cartProducts
 const orderModel_1 = __importDefault(require("./modules/order/orderModel"));
 const orderProductsModel_1 = __importDefault(require("./modules/order/orderProductsModel"));
 const adminRouter_1 = __importDefault(require("./modules/router/adminRouter"));
+const cancelOrderModel_1 = __importDefault(require("./modules/order/cancelOrderModel"));
+const notificationModel_1 = __importDefault(require("./modules/notifications/notificationModel"));
 dotenv_1.default.config();
 const PORT = 3000 || process.env.PORT;
 const app = (0, express_1.default)();
@@ -39,9 +41,16 @@ orderModel_1.default.belongsTo(userModel_1.default, { foreignKey: "userId" });
 orderModel_1.default.belongsToMany(productModel_1.default, { through: orderProductsModel_1.default });
 productModel_1.default.belongsToMany(orderModel_1.default, { through: orderProductsModel_1.default });
 userModel_1.default.hasMany(orderModel_1.default, { foreignKey: "userId" });
-orderModel_1.default.hasMany(orderProductsModel_1.default, { foreignKey: 'orderId', as: 'orderProducts' });
-productModel_1.default.hasMany(orderProductsModel_1.default, { foreignKey: 'productId' });
-orderProductsModel_1.default.belongsTo(productModel_1.default, { foreignKey: 'productId' });
+orderModel_1.default.hasMany(orderProductsModel_1.default, { foreignKey: "orderId", as: "orderProducts" });
+//product with orderProducts
+productModel_1.default.hasMany(orderProductsModel_1.default, { foreignKey: "productId" });
+orderProductsModel_1.default.belongsTo(productModel_1.default, { foreignKey: "productId" });
+//cancel order associations
+cancelOrderModel_1.default.belongsTo(orderModel_1.default, { foreignKey: "orderId" });
+orderModel_1.default.hasOne(cancelOrderModel_1.default, { foreignKey: "orderId" });
+//notifications associations
+notificationModel_1.default.belongsTo(userModel_1.default, { foreignKey: "userId" });
+userModel_1.default.hasMany(notificationModel_1.default, { foreignKey: "userId" });
 // syncing models and starting server
 db_1.default
     .sync({ force: false })

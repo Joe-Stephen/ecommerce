@@ -10,7 +10,8 @@ import {
   getUserById,
   toggleUserAccess,
   getAllOrders,
-  approveOrder
+  approveOrder,
+  updateProduct
 } from "../admin/adminController";
 
 //middlewares
@@ -19,8 +20,8 @@ import verifyAdmin from "../admin/adminAuthentication";
 
 //admin functionalities
 adminRouter.post("/login", loginAdmin);
-
 adminRouter.post("/product", verifyAdmin, upload.array("images"), addProduct);
+adminRouter.post("/updateProduct", verifyAdmin, upload.array("images"), updateProduct);
 adminRouter.get("/", verifyAdmin, getAllUsers);
 adminRouter.get("/orders", verifyAdmin, getAllOrders);
 adminRouter.patch("/approveOrder", approveOrder);

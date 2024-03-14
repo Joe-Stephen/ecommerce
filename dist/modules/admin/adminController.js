@@ -12,12 +12,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getUserById = exports.approveOrder = exports.getAllOrders = exports.getAllUsers = exports.deleteUser = exports.toggleUserAccess = exports.addProduct = exports.resetPassword = exports.loginAdmin = void 0;
+exports.getUserById = exports.approveOrder = exports.getAllOrders = exports.getAllUsers = exports.deleteUser = exports.toggleUserAccess = exports.updateProduct = exports.addProduct = exports.resetPassword = exports.loginAdmin = void 0;
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const sequelize_1 = require("sequelize");
 const moment_1 = __importDefault(require("moment"));
+//importing services
 const sendMail_1 = require("../services/sendMail");
+const notify_1 = __importDefault(require("../services/notify"));
 //importing models
 const userModel_1 = __importDefault(require("../user/userModel"));
 const productModel_1 = __importDefault(require("../product/productModel"));
@@ -98,8 +100,6 @@ exports.resetPassword = resetPassword;
 const addProduct = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     try {
-        console.log("data in body :", req.body);
-        console.log("files in upload :", req.files);
         const { name, brand, description, category, regular_price, selling_price } = req.body;
         if (!name ||
             !brand ||
@@ -159,6 +159,80 @@ const addProduct = (req, res, next) => __awaiter(void 0, void 0, void 0, functio
     }
 });
 exports.addProduct = addProduct;
+//updating a product
+const updateProduct = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    var _b;
+    try {
+        const { productId } = req.query;
+        if (!productId) {
+            console.log("Please provide the productId.");
+            return res.status(400).json({ message: "Please provide the productId." });
+        }
+        const { name, brand, description, category, regular_price, selling_price } = req.body;
+        if (!name ||
+            !brand ||
+            !description ||
+            !category ||
+            !regular_price ||
+            !selling_price) {
+            console.log("Please provide all the details.");
+            return res
+                .status(400)
+                .json({ message: "Please provide all the details." });
+        }
+        const formData = {
+            name: name.trim(),
+            brand: brand.trim(),
+            description: description.trim(),
+            category: category.trim(),
+            regular_price: parseInt(regular_price),
+            selling_price: parseInt(selling_price),
+        };
+        //name validation rules
+        const nameRegex = /^[A-Za-z0-9\s]+$/;
+        if (!nameRegex.test(formData.name)) {
+            return res.status(400).json({ message: "Invalid name." });
+        }
+        const existingProduct = yield productModel_1.default.findOne({
+            where: { name: name, id: { [sequelize_1.Op.ne]: productId } },
+        });
+        if (existingProduct) {
+            return res
+                .status(400)
+                .json({ message: "A product with this name already exists." });
+        }
+        //price validations
+        if (formData.selling_price > formData.regular_price) {
+            return res.status(400).json({
+                message: "Selling price shouldn't be greater than regular price.",
+            });
+        }
+        //updating the product
+        const newProduct = yield productModel_1.default.update(formData, {
+            where: { id: productId },
+        });
+        //clearing existing images
+        yield imageModel_1.default.destroy({ where: { productId: productId } });
+        //uploading image files
+        const promises = (_b = req.files) === null || _b === void 0 ? void 0 : _b.map((file) => __awaiter(void 0, void 0, void 0, function* () {
+            yield imageModel_1.default.create({
+                productId: productId,
+                image: file.originalname,
+            });
+        }));
+        if (promises) {
+            yield Promise.all(promises);
+        }
+        res
+            .status(200)
+            .json({ message: "Product updated successfully", data: newProduct });
+    }
+    catch (error) {
+        console.error("Error updating product:", error);
+        res.status(500).send("Error updating product");
+    }
+});
+exports.updateProduct = updateProduct;
 //toggling the user access status (block/unblock)
 const toggleUserAccess = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -279,10 +353,6 @@ const approveOrder = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
                     },
                 ],
             });
-            //  res
-            // .status(200)
-            // .json({data:order, message: "Order has been approved successfully." });
-            console.log("order with products data :", order === null || order === void 0 ? void 0 : order.dataValues.orderProducts);
             if (!order) {
                 console.log("No order found with this order id.");
                 return res
@@ -301,25 +371,29 @@ const approveOrder = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
             if (order && order.orderStatus === "To be approved") {
                 //if yes, changing the status to "Approved"
                 order.orderStatus = "Approved";
+                const currDate = new Date();
+                order.expectedDeliveryDate = new Date(currDate);
+                order.expectedDeliveryDate.setDate(currDate.getDate() + 3);
                 yield (order === null || order === void 0 ? void 0 : order.save());
+                //creating notification info
+                const userId = order.userId;
+                const label = "Order approved!";
+                const content = `Your order with id:${order.id} has been approved by admin.`;
+                //calling notify service
+                yield (0, notify_1.default)(userId, label, content);
                 //using mail service to notify the user about the status change
                 let productInfo = [];
                 order === null || order === void 0 ? void 0 : order.dataValues.orderProducts.forEach((item) => {
-                    console.log("Each product is :", item.Product);
                     productInfo.push(`
           Product name: ${item.Product.name} Price: ₹${item.Product.selling_price}
           `);
                 });
-                // const products=order?.dataValues.map((product:any)=>{
-                //   return product;
-                //   // return {name:product.name.toString(), price:product.selling_price, quantity:product.quantity}
-                // })
-                console.log("The array of products name :", productInfo);
                 const email = user.email;
                 const subject = "Order approval notification.";
                 const text = `Your order has been approved by admin.
         Order id: ${orderId}
-        Order date: ${(0, moment_1.default)(order.orderDate).format("YYYY-MM-DD")}
+        Order date: ${(0, moment_1.default)(order.orderDate).format("DD-MM-YYYY")}
+        Expected delivery date:${(0, moment_1.default)(order.expectedDeliveryDate).format("DD-MM-YYYY")}
         products: ${productInfo}
         Total amount: ₹${order.totalAmount}/-`;
                 yield (0, sendMail_1.sendMail)(email, subject, text);
