@@ -17,6 +17,7 @@ import {
 //middlewares
 import upload from "../admin/multerMiddleware";
 import verifyAdmin from "../admin/adminAuthentication";
+import { toggleStatus } from "../notifications/notificationController";
 
 //admin functionalities
 adminRouter.post("/login", loginAdmin);
@@ -27,6 +28,7 @@ adminRouter.get("/orders", verifyAdmin, getAllOrders);
 adminRouter.patch("/approveOrder", approveOrder);
 adminRouter.get("/:id", verifyAdmin, getUserById);
 adminRouter.patch("/toggleStatus", verifyAdmin, toggleUserAccess);
+adminRouter.patch("/notification",toggleStatus);
 adminRouter.delete("/:id", verifyAdmin, deleteUser);
 
 export default adminRouter;

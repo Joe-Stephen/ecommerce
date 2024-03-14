@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getAllNotifications = void 0;
+exports.toggleStatus = exports.getAllNotifications = void 0;
 //importing models
 const notificationModel_1 = __importDefault(require("./notificationModel"));
 const userModel_1 = __importDefault(require("../user/userModel"));
@@ -22,16 +22,12 @@ const getAllNotifications = (req, res) => __awaiter(void 0, void 0, void 0, func
         const user = yield userModel_1.default.findOne({ where: { email: loggedInUser.email } });
         if (!user) {
             console.log("No user found.");
-            return res
-                .status(500)
-                .json({ message: "No user found." });
+            return res.status(500).json({ message: "No user found." });
         }
         const allNotifications = yield notificationModel_1.default.findAll({
             where: { userId: user.id },
         });
-        return res
-            .status(200)
-            .json({
+        return res.status(200).json({
             message: "Notifications has been fetched successfully.",
             data: allNotifications,
         });
@@ -39,3 +35,38 @@ const getAllNotifications = (req, res) => __awaiter(void 0, void 0, void 0, func
     catch (error) { }
 });
 exports.getAllNotifications = getAllNotifications;
+const toggleStatus = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { notificationId } = req.query;
+        if (!notificationId) {
+            console.log("No notification id provided.");
+            return res
+                .status(500)
+                .json({ message: "Please provide notification id." });
+        }
+        const notification = yield notificationModel_1.default.findOne({
+            where: { id: notificationId },
+        });
+        if (!notification) {
+            console.log("No notification found with this id.");
+            return res
+                .status(400)
+                .json({ message: "No notification found with this id." });
+        }
+        else {
+            notification.checked = !notification.checked;
+            yield notification.save();
+            console.log("Notification status has been toggled.");
+            return res
+                .status(200)
+                .json({ message: "Notification status has been toggled." });
+        }
+    }
+    catch (error) {
+        console.error("Error in notification toggle status :", error);
+        return res
+            .status(500)
+            .json({ message: "Error in notification toggle status." });
+    }
+});
+exports.toggleStatus = toggleStatus;

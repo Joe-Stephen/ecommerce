@@ -14,14 +14,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.sendMail = void 0;
 const nodemailer_1 = __importDefault(require("nodemailer"));
-const sendMail = (email, subject, text) => __awaiter(void 0, void 0, void 0, function* () {
+const sendMail = (email_1, subject_1, text_1, ...args_1) => __awaiter(void 0, [email_1, subject_1, text_1, ...args_1], void 0, function* (email, subject, text, html = "") {
     try {
         const mailOptions = {
             from: process.env.EMAIL,
             to: email,
             subject: `${subject}`,
             text: `${text}`,
-            html: "",
+            html: html,
         };
         const transporter = nodemailer_1.default.createTransport({
             host: "smtp.gmail.com",

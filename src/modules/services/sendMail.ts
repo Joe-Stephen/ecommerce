@@ -3,7 +3,8 @@ import nodemailer from "nodemailer";
 export const sendMail = async (
   email: string,
   subject: string,
-  text: string
+  text: string,
+  html:string=""
 ) => {
   try {
     const mailOptions = {
@@ -11,7 +12,7 @@ export const sendMail = async (
       to: email,
       subject: `${subject}`,
       text: `${text}`,
-      html: "",
+      html: html,
     };
 
     const transporter = nodemailer.createTransport({

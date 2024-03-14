@@ -10,6 +10,7 @@ const adminController_1 = require("../admin/adminController");
 //middlewares
 const multerMiddleware_1 = __importDefault(require("../admin/multerMiddleware"));
 const adminAuthentication_1 = __importDefault(require("../admin/adminAuthentication"));
+const notificationController_1 = require("../notifications/notificationController");
 //admin functionalities
 adminRouter.post("/login", adminController_1.loginAdmin);
 adminRouter.post("/product", adminAuthentication_1.default, multerMiddleware_1.default.array("images"), adminController_1.addProduct);
@@ -19,5 +20,6 @@ adminRouter.get("/orders", adminAuthentication_1.default, adminController_1.getA
 adminRouter.patch("/approveOrder", adminController_1.approveOrder);
 adminRouter.get("/:id", adminAuthentication_1.default, adminController_1.getUserById);
 adminRouter.patch("/toggleStatus", adminAuthentication_1.default, adminController_1.toggleUserAccess);
+adminRouter.patch("/notification", notificationController_1.toggleStatus);
 adminRouter.delete("/:id", adminAuthentication_1.default, adminController_1.deleteUser);
 exports.default = adminRouter;
