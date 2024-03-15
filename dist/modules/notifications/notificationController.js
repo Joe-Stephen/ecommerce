@@ -16,6 +16,7 @@ exports.toggleStatus = exports.getAllNotifications = void 0;
 //importing models
 const notificationModel_1 = __importDefault(require("./notificationModel"));
 const userModel_1 = __importDefault(require("../user/userModel"));
+const db_1 = __importDefault(require("../config/db"));
 const getAllNotifications = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const loggedInUser = req.body.user;
@@ -37,16 +38,14 @@ const getAllNotifications = (req, res) => __awaiter(void 0, void 0, void 0, func
 exports.getAllNotifications = getAllNotifications;
 const toggleStatus = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { notificationId } = req.query;
-        if (!notificationId) {
+        const { ids } = req.body;
+        if (!ids) {
             console.log("No notification id provided.");
             return res
                 .status(500)
                 .json({ message: "Please provide notification id." });
         }
-        const notification = yield notificationModel_1.default.findOne({
-            where: { id: notificationId },
-        });
+        const notification = yield notificationModel_1.default.update({ checked: db_1.default.literal('NOT checked') }, { where: { id: ids } });
         if (!notification) {
             console.log("No notification found with this id.");
             return res
@@ -54,8 +53,6 @@ const toggleStatus = (req, res) => __awaiter(void 0, void 0, void 0, function* (
                 .json({ message: "No notification found with this id." });
         }
         else {
-            notification.checked = !notification.checked;
-            yield notification.save();
             console.log("Notification status has been toggled.");
             return res
                 .status(200)

@@ -373,8 +373,30 @@ export const approveOrder: RequestHandler = async (req, res, next) => {
         //if yes, changing the status to "Approved"
         order.orderStatus = "Approved";
         const currDate = new Date();
+        const today=moment();
+        const targetDate = moment(today.add(3,'days'));
+        console.log("the target day :",today," == ", moment(today.add(3,'days')));
+        console.log("the WEEKEND CHECK :",targetDate.format("dddd") === "Sunday");
+        
         order.expectedDeliveryDate = new Date(currDate);
-        order.expectedDeliveryDate.setDate(currDate.getDate() + 3);
+        let duration: number = 3;
+        if (
+          targetDate.format("dddd") === "Saturday" ||
+          targetDate.format("dddd") === "Sunday"
+        ) {
+          order.expectedDeliveryDate.setDate(currDate.getDate() + 5);
+          duration = 5;
+          console.log(
+            "delivery date while on weekends :",
+            order.expectedDeliveryDate
+          );
+        } else {
+          order.expectedDeliveryDate.setDate(currDate.getDate() + 3);
+          console.log(
+            "delivery date while on WEEKDAYS :",
+            order.expectedDeliveryDate
+          );
+        }
         await order?.save();
         //creating notification info
         const userId: number = order.userId;
@@ -383,14 +405,14 @@ export const approveOrder: RequestHandler = async (req, res, next) => {
         //calling notify service
         await notify(userId, label, content);
         //using mail service to notify the user about the status change
-        let productInfo: string='';
+        let productInfo: string = "";
         order?.dataValues.orderProducts.forEach((item: any) => {
           productInfo += `<li class="product">${item.Product.name} Price: ₹${item.Product.selling_price}</li>`;
         });
         const email = user.email;
         const subject = "Order approval notification.";
-        const text = `Your order has been approved by admin.`
-        const html=`<!DOCTYPE html>
+        const text = `Your order has been approved by admin.`;
+        const html = `<!DOCTYPE html>
         <html lang="en">
         <head>
           <meta charset="UTF-8">
@@ -432,8 +454,13 @@ export const approveOrder: RequestHandler = async (req, res, next) => {
             <div class="order-details">
               <p><strong>Your order has been approved by admin.</strong></p>
               <p><strong>Order id:</strong> ${order.id}</p>
-              <p><strong>Order date:</strong> ${moment(order.orderDate).format("DD-MM-YYYY")}</p>
-              <p><strong>Expected delivery date:</strong> ${moment(order.expectedDeliveryDate).format("DD-MM-YYYY")}</p>
+              <p><strong>Order date:</strong> ${moment(order.orderDate).format(
+                "DD-MM-YYYY"
+              )}</p>
+              <p><strong>Expected delivery date:</strong> ${moment(
+                order.expectedDeliveryDate
+              ).format("DD-MM-YYYY")}</p>
+              <p><strong>Expected delivery duration:</strong> ${duration} days</p>
               <p><strong>Products:</strong></p>
               <ul class="products">${productInfo}</ul>
               <p><strong>Total amount:</strong> ₹${order.totalAmount}/-</p>
@@ -441,7 +468,7 @@ export const approveOrder: RequestHandler = async (req, res, next) => {
           </div>
         </body>
         </html>
-        `
+        `;
         await sendMail(email, subject, text, html);
         console.log("Order has been approved successfully.");
         return res

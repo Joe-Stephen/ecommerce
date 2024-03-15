@@ -3,9 +3,11 @@ import { RequestHandler } from "express";
 //importing models
 import Notification from "./notificationModel";
 import User from "../user/userModel";
+import moment from "moment";
+import sequelize from "../config/db";
 
 export const getAllNotifications: RequestHandler = async (req, res) => {
-  try {
+  try {   
     const loggedInUser = req.body.user;
     const user = await User.findOne({ where: { email: loggedInUser.email } });
     if (!user) {
@@ -24,24 +26,20 @@ export const getAllNotifications: RequestHandler = async (req, res) => {
 
 export const toggleStatus: RequestHandler = async (req, res) => {
   try {
-    const { notificationId } = req.query;
-    if (!notificationId) {
+    const { ids } = req.body;
+    if (!ids) {
       console.log("No notification id provided.");
       return res
         .status(500)
         .json({ message: "Please provide notification id." });
     }
-    const notification = await Notification.findOne({
-      where: { id: notificationId },
-    });
+    const notification = await Notification.update({checked:sequelize.literal('NOT checked')},{where: { id:ids }});
     if (!notification) {
       console.log("No notification found with this id.");
       return res
         .status(400)
         .json({ message: "No notification found with this id." });
     } else {
-      notification.checked = !notification.checked;
-      await notification.save();
       console.log("Notification status has been toggled.");
       return res
         .status(200)

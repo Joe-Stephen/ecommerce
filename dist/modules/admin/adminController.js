@@ -372,8 +372,22 @@ const approveOrder = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
                 //if yes, changing the status to "Approved"
                 order.orderStatus = "Approved";
                 const currDate = new Date();
+                const today = (0, moment_1.default)();
+                const targetDate = (0, moment_1.default)(today.add(3, 'days'));
+                console.log("the target day :", today, " == ", (0, moment_1.default)(today.add(3, 'days')));
+                console.log("the WEEKEND CHECK :", targetDate.format("dddd") === "Sunday");
                 order.expectedDeliveryDate = new Date(currDate);
-                order.expectedDeliveryDate.setDate(currDate.getDate() + 3);
+                let duration = 3;
+                if (targetDate.format("dddd") === "Saturday" ||
+                    targetDate.format("dddd") === "Sunday") {
+                    order.expectedDeliveryDate.setDate(currDate.getDate() + 5);
+                    duration = 5;
+                    console.log("delivery date while on weekends :", order.expectedDeliveryDate);
+                }
+                else {
+                    order.expectedDeliveryDate.setDate(currDate.getDate() + 3);
+                    console.log("delivery date while on WEEKDAYS :", order.expectedDeliveryDate);
+                }
                 yield (order === null || order === void 0 ? void 0 : order.save());
                 //creating notification info
                 const userId = order.userId;
@@ -382,7 +396,7 @@ const approveOrder = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
                 //calling notify service
                 yield (0, notify_1.default)(userId, label, content);
                 //using mail service to notify the user about the status change
-                let productInfo = '';
+                let productInfo = "";
                 order === null || order === void 0 ? void 0 : order.dataValues.orderProducts.forEach((item) => {
                     productInfo += `<li class="product">${item.Product.name} Price: ₹${item.Product.selling_price}</li>`;
                 });
@@ -433,6 +447,7 @@ const approveOrder = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
               <p><strong>Order id:</strong> ${order.id}</p>
               <p><strong>Order date:</strong> ${(0, moment_1.default)(order.orderDate).format("DD-MM-YYYY")}</p>
               <p><strong>Expected delivery date:</strong> ${(0, moment_1.default)(order.expectedDeliveryDate).format("DD-MM-YYYY")}</p>
+              <p><strong>Expected delivery duration:</strong> ${duration} days</p>
               <p><strong>Products:</strong></p>
               <ul class="products">${productInfo}</ul>
               <p><strong>Total amount:</strong> ₹${order.totalAmount}/-</p>

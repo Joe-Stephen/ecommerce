@@ -1,4 +1,5 @@
 import { RequestHandler, Request } from "express";
+import moment from "moment";
 import { Op } from "sequelize";
 
 //model imports
@@ -11,8 +12,17 @@ import Cancel from "./cancelOrderModel";
 
 export const checkOut: RequestHandler = async (req, res, next) => {
   try {
+    const date = moment();
+    console.log("date test i ", date.format("dddd"));
+    const day = date.format("dddd");
+    //checking if the order date is on weekends
+    if (day === "Saturday" || day === "Sunday") {
+      console.log("Cannot place an order on weekends.");
+      return res
+        .status(400)
+        .json({ message: "Cannot place an order on weekends." });
+    }
     const loggedInUser = req.body.user;
-    console.log("the user in req is :", loggedInUser.email);
     if (!loggedInUser) {
       console.log("No user found. User is not logged in.");
       return res
@@ -44,7 +54,6 @@ export const checkOut: RequestHandler = async (req, res, next) => {
         },
       ],
     });
-    console.log("the user with cart :", userWithCart);
     const productsInCart = userWithCart?.dataValues.Cart.dataValues.Products;
     const productArray = productsInCart.map(
       (product: any) => product.dataValues
@@ -106,6 +115,8 @@ export const cancelOrder: RequestHandler = async (req, res, next) => {
     });
   } catch (error) {
     console.error("An error happened in the cancelOrder function :", error);
-    res.status(500).json({ message: "Internal server error while cancelling the order." });
+    res
+      .status(500)
+      .json({ message: "Internal server error while cancelling the order." });
   }
 };

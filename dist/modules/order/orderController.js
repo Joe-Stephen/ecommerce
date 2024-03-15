@@ -13,6 +13,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.cancelOrder = exports.checkOut = void 0;
+const moment_1 = __importDefault(require("moment"));
 //model imports
 const userModel_1 = __importDefault(require("../user/userModel"));
 const productModel_1 = __importDefault(require("../product/productModel"));
@@ -22,8 +23,17 @@ const orderProductsModel_1 = __importDefault(require("./orderProductsModel"));
 const cancelOrderModel_1 = __importDefault(require("./cancelOrderModel"));
 const checkOut = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
+        const date = (0, moment_1.default)();
+        console.log("date test i ", date.format("dddd"));
+        const day = date.format("dddd");
+        //checking if the order date is on weekends
+        if (day === "Saturday" || day === "Sunday") {
+            console.log("Cannot place an order on weekends.");
+            return res
+                .status(400)
+                .json({ message: "Cannot place an order on weekends." });
+        }
         const loggedInUser = req.body.user;
-        console.log("the user in req is :", loggedInUser.email);
         if (!loggedInUser) {
             console.log("No user found. User is not logged in.");
             return res
@@ -54,7 +64,6 @@ const checkOut = (req, res, next) => __awaiter(void 0, void 0, void 0, function*
                 },
             ],
         });
-        console.log("the user with cart :", userWithCart);
         const productsInCart = userWithCart === null || userWithCart === void 0 ? void 0 : userWithCart.dataValues.Cart.dataValues.Products;
         const productArray = productsInCart.map((product) => product.dataValues);
         const orderProducts = [];
@@ -116,7 +125,9 @@ const cancelOrder = (req, res, next) => __awaiter(void 0, void 0, void 0, functi
     }
     catch (error) {
         console.error("An error happened in the cancelOrder function :", error);
-        res.status(500).json({ message: "Internal server error while cancelling the order." });
+        res
+            .status(500)
+            .json({ message: "Internal server error while cancelling the order." });
     }
 });
 exports.cancelOrder = cancelOrder;
