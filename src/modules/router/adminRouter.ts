@@ -11,7 +11,9 @@ import {
   toggleUserAccess,
   getAllOrders,
   approveOrder,
-  updateProduct
+  updateProduct,
+  notifyAllUsers,
+  notifySelectedUsers
 } from "../admin/adminController";
 
 //middlewares
@@ -29,6 +31,8 @@ adminRouter.patch("/approveOrder", approveOrder);
 adminRouter.get("/:id", verifyAdmin, getUserById);
 adminRouter.patch("/toggleStatus", verifyAdmin, toggleUserAccess);
 adminRouter.patch("/notification",toggleStatus);
+adminRouter.post("/notifyAll", notifyAllUsers);
+adminRouter.post("/notifySelected", notifySelectedUsers);
 adminRouter.delete("/:id", verifyAdmin, deleteUser);
 
 export default adminRouter;

@@ -12,14 +12,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getUserById = exports.approveOrder = exports.getAllOrders = exports.getAllUsers = exports.deleteUser = exports.toggleUserAccess = exports.updateProduct = exports.addProduct = exports.resetPassword = exports.loginAdmin = void 0;
+exports.notifySelectedUsers = exports.notifyAllUsers = exports.getUserById = exports.approveOrder = exports.getAllOrders = exports.getAllUsers = exports.deleteUser = exports.toggleUserAccess = exports.updateProduct = exports.addProduct = exports.resetPassword = exports.loginAdmin = void 0;
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const sequelize_1 = require("sequelize");
 const moment_1 = __importDefault(require("moment"));
 //importing services
 const sendMail_1 = require("../services/sendMail");
-const notify_1 = __importDefault(require("../services/notify"));
+const notify_1 = require("../services/notify");
 //importing models
 const userModel_1 = __importDefault(require("../user/userModel"));
 const productModel_1 = __importDefault(require("../product/productModel"));
@@ -258,8 +258,8 @@ const toggleUserAccess = (req, res, next) => __awaiter(void 0, void 0, void 0, f
         }
     }
     catch (error) {
-        console.error("Error creating product:", error);
-        res.status(500).send("Error creating product");
+        console.error("Error toggling user status:", error);
+        res.status(500).send("Error toggling user status.");
     }
 });
 exports.toggleUserAccess = toggleUserAccess;
@@ -373,8 +373,8 @@ const approveOrder = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
                 order.orderStatus = "Approved";
                 const currDate = new Date();
                 const today = (0, moment_1.default)();
-                const targetDate = (0, moment_1.default)(today.add(3, 'days'));
-                console.log("the target day :", today, " == ", (0, moment_1.default)(today.add(3, 'days')));
+                const targetDate = (0, moment_1.default)(today.add(3, "days"));
+                console.log("the target day :", today, " == ", (0, moment_1.default)(today.add(3, "days")));
                 console.log("the WEEKEND CHECK :", targetDate.format("dddd") === "Sunday");
                 order.expectedDeliveryDate = new Date(currDate);
                 let duration = 3;
@@ -394,7 +394,7 @@ const approveOrder = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
                 const label = "Order approved!";
                 const content = `Your order with id:${order.id} has been approved by admin.`;
                 //calling notify service
-                yield (0, notify_1.default)(userId, label, content);
+                yield (0, notify_1.notify)(userId, label, content);
                 //using mail service to notify the user about the status change
                 let productInfo = "";
                 order === null || order === void 0 ? void 0 : order.dataValues.orderProducts.forEach((item) => {
@@ -491,3 +491,37 @@ const getUserById = (req, res, next) => __awaiter(void 0, void 0, void 0, functi
         .json({ message: "User fetched successfully.", data: user });
 });
 exports.getUserById = getUserById;
+const notifyAllUsers = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { label, content } = req.body;
+        if (!label || !content) {
+            console.log("No label or content found in the request body.");
+            res.status(400).json({ message: "Please provide all the fields." });
+        }
+        yield (0, notify_1.notifyAll)(label, content);
+        console.log("All users have been notified.");
+        res.status(200).json({ message: "All users have been notified." });
+    }
+    catch (error) {
+        console.error("Error in notifyAllUsers function.", error);
+        res.status(500).json({ message: "Internal server error." });
+    }
+});
+exports.notifyAllUsers = notifyAllUsers;
+const notifySelectedUsers = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { ids, label, content } = req.body;
+        if (!ids || !label || !content) {
+            console.log("No label or content or ids found in the request body.");
+            res.status(400).json({ message: "Please fill all the fields." });
+        }
+        yield (0, notify_1.notifySelected)(ids, label, content);
+        console.log("Selected users have been notified.");
+        res.status(200).json({ message: "Selected users have been notified." });
+    }
+    catch (error) {
+        console.error("Error in notifySelectedUsers function.", error);
+        res.status(500).json({ message: "Internal server error." });
+    }
+});
+exports.notifySelectedUsers = notifySelectedUsers;

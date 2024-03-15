@@ -7,7 +7,7 @@ import moment from "moment";
 import sequelize from "../config/db";
 
 export const getAllNotifications: RequestHandler = async (req, res) => {
-  try {   
+  try {
     const loggedInUser = req.body.user;
     const user = await User.findOne({ where: { email: loggedInUser.email } });
     if (!user) {
@@ -21,7 +21,10 @@ export const getAllNotifications: RequestHandler = async (req, res) => {
       message: "Notifications has been fetched successfully.",
       data: allNotifications,
     });
-  } catch (error) {}
+  } catch (error) {
+    console.error("Error in getAllNotifications function.", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
 };
 
 export const toggleStatus: RequestHandler = async (req, res) => {
@@ -33,7 +36,10 @@ export const toggleStatus: RequestHandler = async (req, res) => {
         .status(500)
         .json({ message: "Please provide notification id." });
     }
-    const notification = await Notification.update({checked:sequelize.literal('NOT checked')},{where: { id:ids }});
+    const notification = await Notification.update(
+      { checked: sequelize.literal("NOT checked") },
+      { where: { id: ids } }
+    );
     if (!notification) {
       console.log("No notification found with this id.");
       return res

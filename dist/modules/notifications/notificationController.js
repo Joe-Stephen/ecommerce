@@ -33,7 +33,10 @@ const getAllNotifications = (req, res) => __awaiter(void 0, void 0, void 0, func
             data: allNotifications,
         });
     }
-    catch (error) { }
+    catch (error) {
+        console.error("Error in getAllNotifications function.", error);
+        res.status(500).json({ message: "Internal server error." });
+    }
 });
 exports.getAllNotifications = getAllNotifications;
 const toggleStatus = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -45,7 +48,7 @@ const toggleStatus = (req, res) => __awaiter(void 0, void 0, void 0, function* (
                 .status(500)
                 .json({ message: "Please provide notification id." });
         }
-        const notification = yield notificationModel_1.default.update({ checked: db_1.default.literal('NOT checked') }, { where: { id: ids } });
+        const notification = yield notificationModel_1.default.update({ checked: db_1.default.literal("NOT checked") }, { where: { id: ids } });
         if (!notification) {
             console.log("No notification found with this id.");
             return res

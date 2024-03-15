@@ -6,7 +6,7 @@ import moment from "moment";
 
 //importing services
 import { sendMail } from "../services/sendMail";
-import notify from "../services/notify";
+import { notify, notifyAll, notifySelected } from "../services/notify";
 
 //importing models
 import User from "../user/userModel";
@@ -262,8 +262,8 @@ export const toggleUserAccess: RequestHandler = async (req, res, next) => {
       res.status(400).send("Please provide a user id.");
     }
   } catch (error) {
-    console.error("Error creating product:", error);
-    res.status(500).send("Error creating product");
+    console.error("Error toggling user status:", error);
+    res.status(500).send("Error toggling user status.");
   }
 };
 
@@ -373,11 +373,19 @@ export const approveOrder: RequestHandler = async (req, res, next) => {
         //if yes, changing the status to "Approved"
         order.orderStatus = "Approved";
         const currDate = new Date();
-        const today=moment();
-        const targetDate = moment(today.add(3,'days'));
-        console.log("the target day :",today," == ", moment(today.add(3,'days')));
-        console.log("the WEEKEND CHECK :",targetDate.format("dddd") === "Sunday");
-        
+        const today = moment();
+        const targetDate = moment(today.add(3, "days"));
+        console.log(
+          "the target day :",
+          today,
+          " == ",
+          moment(today.add(3, "days"))
+        );
+        console.log(
+          "the WEEKEND CHECK :",
+          targetDate.format("dddd") === "Sunday"
+        );
+
         order.expectedDeliveryDate = new Date(currDate);
         let duration: number = 3;
         if (
@@ -498,4 +506,36 @@ export const getUserById: RequestHandler = async (req, res, next) => {
   return res
     .status(200)
     .json({ message: "User fetched successfully.", data: user });
+};
+
+export const notifyAllUsers: RequestHandler = async (req, res, next) => {
+  try {
+    const { label, content } = req.body;
+    if (!label || !content) {
+      console.log("No label or content found in the request body.");
+      res.status(400).json({ message: "Please provide all the fields." });
+    }
+    await notifyAll(label, content);
+    console.log("All users have been notified.");
+    res.status(200).json({ message: "All users have been notified." });
+  } catch (error) {
+    console.error("Error in notifyAllUsers function.", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
+
+export const notifySelectedUsers: RequestHandler = async (req, res, next) => {
+  try {
+    const {ids, label, content } = req.body;
+    if (!ids || !label || !content) {
+      console.log("No label or content or ids found in the request body.");
+      res.status(400).json({ message: "Please fill all the fields." });
+    }
+    await notifySelected(ids, label, content);
+    console.log("Selected users have been notified.");
+    res.status(200).json({ message: "Selected users have been notified." });
+  } catch (error) {
+    console.error("Error in notifySelectedUsers function.", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
 };

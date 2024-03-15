@@ -21,5 +21,7 @@ adminRouter.patch("/approveOrder", adminController_1.approveOrder);
 adminRouter.get("/:id", adminAuthentication_1.default, adminController_1.getUserById);
 adminRouter.patch("/toggleStatus", adminAuthentication_1.default, adminController_1.toggleUserAccess);
 adminRouter.patch("/notification", notificationController_1.toggleStatus);
+adminRouter.post("/notifyAll", adminController_1.notifyAllUsers);
+adminRouter.post("/notifySelected", adminController_1.notifySelectedUsers);
 adminRouter.delete("/:id", adminAuthentication_1.default, adminController_1.deleteUser);
 exports.default = adminRouter;
