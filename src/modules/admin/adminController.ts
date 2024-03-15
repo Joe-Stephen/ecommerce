@@ -297,7 +297,17 @@ export const getAllOrders: RequestHandler = async (req, res, next) => {
       ],
       order: [["orderDate", "ASC"]],
     };
-    const { startDate, endDate } = req.query;
+    let { startDate, endDate, today } = req.query;
+    if (today) {
+      const currDate = new Date();
+      const start = currDate.setDate(currDate.getDate() -1 );
+      const end = currDate.setDate(currDate.getDate() + 1 );
+      queryOptions.where = {
+        orderDate: {
+          [Op.between]: [start, end],
+        },
+      };
+    }
     if (startDate && endDate) {
       queryOptions.where = {
         orderDate: {
@@ -372,6 +382,7 @@ export const approveOrder: RequestHandler = async (req, res, next) => {
       if (order && order.orderStatus === "To be approved") {
         //if yes, changing the status to "Approved"
         order.orderStatus = "Approved";
+
         const currDate = new Date();
         const today = moment();
         const targetDate = moment(today.add(3, "days"));
@@ -526,7 +537,7 @@ export const notifyAllUsers: RequestHandler = async (req, res, next) => {
 
 export const notifySelectedUsers: RequestHandler = async (req, res, next) => {
   try {
-    const {ids, label, content } = req.body;
+    const { ids, label, content } = req.body;
     if (!ids || !label || !content) {
       console.log("No label or content or ids found in the request body.");
       res.status(400).json({ message: "Please fill all the fields." });

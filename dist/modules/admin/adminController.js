@@ -293,13 +293,25 @@ const getAllOrders = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
             ],
             order: [["orderDate", "ASC"]],
         };
-        const { startDate, endDate } = req.query;
+        let { startDate, endDate, today } = req.query;
+        if (today) {
+            const currDate = new Date();
+            const start = currDate.setDate(currDate.getDate() - 1);
+            const end = currDate.setDate(currDate.getDate() + 1);
+            queryOptions.where = {
+                orderDate: {
+                    [sequelize_1.Op.between]: [start, end],
+                },
+            };
+            console.log("start :", start, " end :", end);
+        }
         if (startDate && endDate) {
             queryOptions.where = {
                 orderDate: {
                     [sequelize_1.Op.between]: [startDate, endDate],
                 },
             };
+            console.log("the query options are :", queryOptions);
         }
         else if (startDate && !endDate) {
             queryOptions.where = {
@@ -316,6 +328,7 @@ const getAllOrders = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
             };
         }
         const allOrders = yield orderModel_1.default.findAll(queryOptions);
+        console.log("All orders found :", allOrders);
         const formattedOrders = allOrders.map((order) => {
             return Object.assign({}, order.toJSON());
         });
