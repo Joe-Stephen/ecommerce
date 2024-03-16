@@ -3,7 +3,7 @@ import sequelize from "../config/db";
 
 class OrderProducts extends Model {
   public id!: number;
-  public cartId!: number;
+  public orderId!: number;
   public productId!: number;
   public price!: number;
   public quantity!: number;

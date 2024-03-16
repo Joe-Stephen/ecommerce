@@ -31,4 +31,6 @@ userRouter.patch("/increaseCartQuantity", userAuthentication_1.default, cartCont
 userRouter.delete("/removeCartItem", cartController_1.removeCartItem);
 //order functionalities
 userRouter.post("/checkOut", userAuthentication_1.default, orderController_1.checkOut);
+userRouter.post("/cancelOrder", orderController_1.cancelOrder);
+userRouter.patch("/editOrder", orderController_1.editOrder);
 exports.default = userRouter;

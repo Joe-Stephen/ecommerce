@@ -9,6 +9,7 @@ import Cart from "../cart/cartModel";
 import Order from "./orderModel";
 import OrderProducts from "./orderProductsModel";
 import Cancel from "./cancelOrderModel";
+import CartProducts from "../cart/cartProductsModel";
 
 export const checkOut: RequestHandler = async (req, res, next) => {
   try {
@@ -54,6 +55,10 @@ export const checkOut: RequestHandler = async (req, res, next) => {
         },
       ],
     });
+    if (!userWithCart) {
+      console.log("No user with cart found.");
+      return res.status(400).json({ message: "No user with cart found." });
+    }
     const productsInCart = userWithCart?.dataValues.Cart.dataValues.Products;
     const productArray = productsInCart.map(
       (product: any) => product.dataValues
@@ -81,7 +86,9 @@ export const checkOut: RequestHandler = async (req, res, next) => {
     if (promises) {
       await Promise.all(promises);
       //removing user cart
-      // await Cart.destroy({where:{userId:user.id }});
+      await Cart.destroy({ where: { userId: user.id } });
+      //removing cart products
+      await CartProducts.destroy({ where: { cartId: userWithCart.id } });
       return res.status(200).json({
         message: "Order has been placed.",
         data: orderObject,
@@ -98,25 +105,181 @@ export const cancelOrder: RequestHandler = async (req, res, next) => {
     const { orderId } = req.query;
     if (!orderId) {
       console.log("No order id found in query.");
-      res.status(400).json({ message: "Please provide an order id." });
+      return res.status(400).json({ message: "Please provide an order id." });
     }
     const { reason } = req.body;
     if (!reason) {
       console.log("No reason provided.");
-      res.status(400).json({ message: "Please provide your reason." });
+      return res.status(400).json({ message: "Please provide your reason." });
+    } else {
+      const order = await Order.findOne({ where: { id: orderId } });
+      if (!order) {
+        console.log("There is no order with this id.");
+        return res
+          .status(400)
+          .json({ message: "There is no order with this id." });
+      }
+      if (order?.orderStatus === "To be approved") {
+        const cancelRequest = await Cancel.create({
+          orderId: orderId,
+          reason: reason,
+        });
+        order.orderStatus = "Cancelled";
+        await order.save();
+        console.log("Cancel request has been submitted.");
+        //restoring cart
+        console.log("the order :", order);
+        const orderProducts: any = await OrderProducts.findAll({
+          where: { orderId: order.id },
+        });
+        if (!orderProducts) {
+          console.log("No order products found in the order.");
+          return res
+            .status(400)
+            .json({ message: "No order products found in the order." });
+        }
+        console.log("the order products is :", orderProducts);
+        const userCart = await Cart.create({ userId: order.userId });
+        //adding products back to cart
+        const promises = orderProducts.map(async (product: any) => {
+          await CartProducts.create({
+            cartId: userCart.id,
+            productId: product.productId,
+            quantity: product.quantity,
+          });
+        });
+        if (promises) {
+          await Promise.all(promises);
+          console.log("Cart has been restored.");
+          return res.status(200).json({
+            message: "Cancel request has been submitted.",
+          });
+        } else {
+          console.log("Unexpected error happened in cancel order function.");
+          return res.status(500).json({
+            message: "Unexpected error happened while cancelling the order.",
+          });
+        }
+      } else if (order?.orderStatus === "Cancelled") {
+        console.log("This order is already cancelled.");
+        return res
+          .status(400)
+          .json({ message: "This order is already cancelled." });
+      } else {
+        console.log(
+          "This order is already approved by admin, cannot be cancelled."
+        );
+        return res.status(400).json({
+          message:
+            "This order is already approved by admin, cannot be cancelled.",
+        });
+      }
     }
-    const cancelRequest = await Cancel.create({
-      orderId: orderId,
-      reason: reason,
-    });
-    console.log("Cancel request has been submitted.");
-    return res.status(200).json({
-      message: "Cancel request has been submitted.",
-    });
   } catch (error) {
     console.error("An error happened in the cancelOrder function :", error);
-    res
+    return res
       .status(500)
       .json({ message: "Internal server error while cancelling the order." });
+  }
+};
+
+export const editOrder: RequestHandler = async (req, res, next) => {
+  try {
+    const { orderId } = req.query;
+    const { productIds, action } = req.body;
+    let amount: number = 0;
+    if (!orderId || !productIds || !action) {
+      console.log("No order/productId/quantity provided in the req.query.");
+      return res
+        .status(400)
+        .json({ message: "Please provide all the details." });
+    }
+    const order = await Order.findOne({ where: { id: orderId } });
+    if (!order) {
+      console.log("No order found with this id.");
+      return res.status(400).json({ message: "No order found with this id." });
+    }
+    if (order.orderStatus !== "To be approved") {
+      console.log("This order cannot be edited.");
+      return res.status(400).json({ message: "This order cannot be edited." });
+    } else {
+      const orderProducts = await OrderProducts.findAll({
+        where: { orderId: order.id },
+      });
+      const products = await Product.findAll({ where: { id: productIds } });
+      if (action === "add") {
+        if (!products || products.length === 0) {
+          console.log("No products specified for addition.");
+          return res
+            .status(400)
+            .json({ message: "Please specify products for addition." });
+        }
+        const promises: any[] = products.map(async (product: any) => {
+          amount += product.selling_price;
+          const existingProduct = await OrderProducts.findOne({
+            where: { productId: product.id, orderId: orderId },
+          });
+          if (existingProduct) {
+            await OrderProducts.update(
+              { quantity: existingProduct.quantity + 1 },
+              { where: { id: existingProduct.id } }
+            );
+          } else {
+            await OrderProducts.create({
+              orderId: orderId,
+              productId: product.id,
+              price: product.selling_price,
+              quantity: 1,
+            });
+          }
+        });
+        await Promise.all(promises);
+        console.log("New products has been added to order products.");
+        order.totalAmount += amount;
+        await order.save();
+        console.log("Order total amount has been updated.");
+        console.log("Order has been edited.");
+        return res.status(200).json({
+          message: "Order has been edited.",
+        });
+      } else if (action === "remove") {
+        if (!products || products.length === 0) {
+          console.log("No products specified for removal.");
+          return res
+            .status(400)
+            .json({ message: "Please specify products for removal." });
+        }
+        const promises: any[] = products.map(async (product: any) => {
+          const existingProduct = await OrderProducts.findOne({
+            where: { productId: product.id, orderId: orderId },
+          });
+          if (existingProduct) {
+            amount = amount + existingProduct.price;
+            if (existingProduct.quantity > 1) {
+              existingProduct.quantity -= 1;
+              await existingProduct.save();
+            } else {
+              await OrderProducts.destroy({
+                where: { id: existingProduct.id },
+              });
+            }
+          } else {
+            console.log(`${product.name} is not in the order.`);
+          }
+        });
+        await Promise.all(promises);
+        console.log("The products has been removed from the order.");
+        order.totalAmount -= amount;
+        await order.save();
+        console.log("Order total amount has been updated.");
+        console.log("Order has been edited.");
+        return res.status(200).json({
+          message: "Order has been edited.",
+        });
+      }
+    }
+  } catch (error) {
+    console.error("An error in edit order function :", error);
+    return res.status(500).json({ message: "Couldn't edit the order." });
   }
 };

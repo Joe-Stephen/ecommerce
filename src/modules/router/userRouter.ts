@@ -23,7 +23,9 @@ import {
 
 //order functions
 import {
-  checkOut
+  cancelOrder,
+  checkOut,
+  editOrder
 } from "../order/orderController";
 
 //middlewares
@@ -49,5 +51,7 @@ userRouter.delete("/removeCartItem", removeCartItem);
 
 //order functionalities
 userRouter.post("/checkOut", verifyUser, checkOut);
+userRouter.post("/cancelOrder", cancelOrder);
+userRouter.patch("/editOrder", editOrder);
 
 export default userRouter;

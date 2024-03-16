@@ -21,7 +21,8 @@ const cartProductsModel_1 = __importDefault(require("../cart/cartProductsModel")
 const getUserCart = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const loggedInUser = req.body.user;
-        const userWithCart = yield userModel_1.default.findOne({ where: { email: loggedInUser.email },
+        const userWithCart = yield userModel_1.default.findOne({
+            where: { email: loggedInUser.email },
             include: [
                 {
                     model: cartModel_1.default,
@@ -61,16 +62,22 @@ const addToCart = (req, res, next) => __awaiter(void 0, void 0, void 0, function
         const { productId } = req.query;
         if (!productId) {
             console.log("No productId in query params.");
-            return res.status(400).json({ message: "Please provide a product id as query param." });
+            return res
+                .status(400)
+                .json({ message: "Please provide a product id as query param." });
         }
         if (!loggedInUser) {
             console.log("No user found. User is not logged in.");
-            return res.status(400).json({ message: "No user found. User is not logged in." });
+            return res
+                .status(400)
+                .json({ message: "No user found. User is not logged in." });
         }
         const user = yield userModel_1.default.findOne({ where: { email: loggedInUser.email } });
         if (!user) {
             console.log("No user found. User is not logged in.");
-            return res.status(400).json({ message: "No user found. User is not logged in." });
+            return res
+                .status(400)
+                .json({ message: "No user found. User is not logged in." });
         }
         let userCart = yield cartModel_1.default.findOne({ where: { userId: user.id } });
         if (!userCart) {
@@ -92,7 +99,11 @@ const addToCart = (req, res, next) => __awaiter(void 0, void 0, void 0, function
                 where: { cartId: userCart.id, productId: productId },
             });
             if (!existingProduct) {
-                cartProductsModel_1.default.create({ cartId: userCart.id, productId: productId, quantity: 1 });
+                cartProductsModel_1.default.create({
+                    cartId: userCart.id,
+                    productId: productId,
+                    quantity: 1,
+                });
                 console.log("Product has been added to cart.");
                 return res
                     .status(200)

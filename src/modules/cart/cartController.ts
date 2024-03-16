@@ -1,6 +1,5 @@
 import { RequestHandler } from "express";
 
-
 //model imports
 import User from "../user/userModel";
 import Product from "../product/productModel";
@@ -9,8 +8,9 @@ import CartProducts from "../cart/cartProductsModel";
 
 export const getUserCart: RequestHandler = async (req, res, next) => {
   try {
-    const loggedInUser=req.body.user;
-    const userWithCart = await User.findOne({where:{email:loggedInUser.email},
+    const loggedInUser = req.body.user;
+    const userWithCart = await User.findOne({
+      where: { email: loggedInUser.email },
       include: [
         {
           model: Cart,
@@ -18,7 +18,7 @@ export const getUserCart: RequestHandler = async (req, res, next) => {
         },
       ],
     });
-    if(!userWithCart?.dataValues.Cart){
+    if (!userWithCart?.dataValues.Cart) {
       console.log("User cart is empty.");
       return res.status(400).json({ message: "Your cart is empty." });
     }
@@ -46,21 +46,27 @@ export const getUserCart: RequestHandler = async (req, res, next) => {
 
 export const addToCart: RequestHandler = async (req, res, next) => {
   try {
-    const loggedInUser=req.body.user;
+    const loggedInUser = req.body.user;
     console.log("the user in req is :", loggedInUser.email);
-    const {productId}=req.query;
-    if(!productId){
+    const { productId } = req.query;
+    if (!productId) {
       console.log("No productId in query params.");
-      return res.status(400).json({ message: "Please provide a product id as query param." }); 
+      return res
+        .status(400)
+        .json({ message: "Please provide a product id as query param." });
     }
-    if(!loggedInUser){
+    if (!loggedInUser) {
       console.log("No user found. User is not logged in.");
-      return res.status(400).json({ message: "No user found. User is not logged in." }); 
+      return res
+        .status(400)
+        .json({ message: "No user found. User is not logged in." });
     }
-    const user=await User.findOne({where:{email:loggedInUser.email}})
-    if(!user){
+    const user = await User.findOne({ where: { email: loggedInUser.email } });
+    if (!user) {
       console.log("No user found. User is not logged in.");
-      return res.status(400).json({ message: "No user found. User is not logged in." }); 
+      return res
+        .status(400)
+        .json({ message: "No user found. User is not logged in." });
     }
     let userCart = await Cart.findOne({ where: { userId: user.id } });
     if (!userCart) {
@@ -81,7 +87,11 @@ export const addToCart: RequestHandler = async (req, res, next) => {
         where: { cartId: userCart.id, productId: productId },
       });
       if (!existingProduct) {
-        CartProducts.create({ cartId: userCart.id, productId: productId, quantity: 1 });
+        CartProducts.create({
+          cartId: userCart.id,
+          productId: productId,
+          quantity: 1,
+        });
         console.log("Product has been added to cart.");
         return res
           .status(200)

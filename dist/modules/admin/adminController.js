@@ -303,7 +303,6 @@ const getAllOrders = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
                     [sequelize_1.Op.between]: [start, end],
                 },
             };
-            console.log("start :", start, " end :", end);
         }
         if (startDate && endDate) {
             queryOptions.where = {
@@ -311,7 +310,6 @@ const getAllOrders = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
                     [sequelize_1.Op.between]: [startDate, endDate],
                 },
             };
-            console.log("the query options are :", queryOptions);
         }
         else if (startDate && !endDate) {
             queryOptions.where = {
@@ -328,7 +326,6 @@ const getAllOrders = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
             };
         }
         const allOrders = yield orderModel_1.default.findAll(queryOptions);
-        console.log("All orders found :", allOrders);
         const formattedOrders = allOrders.map((order) => {
             return Object.assign({}, order.toJSON());
         });
