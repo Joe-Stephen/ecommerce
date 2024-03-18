@@ -187,12 +187,11 @@ export const editOrder: RequestHandler = async (req, res, next) => {
   try {
     const { orderId } = req.query;
     const { productIds, action } = req.body;
-    let amount: number = 0;
     if (!orderId || !productIds || !action) {
       console.log("No order/productId/quantity provided in the req.query.");
       return res
-        .status(400)
-        .json({ message: "Please provide all the details." });
+      .status(400)
+      .json({ message: "Please provide all the details." });
     }
     const order = await Order.findOne({ where: { id: orderId } });
     if (!order) {
@@ -203,9 +202,7 @@ export const editOrder: RequestHandler = async (req, res, next) => {
       console.log("This order cannot be edited.");
       return res.status(400).json({ message: "This order cannot be edited." });
     } else {
-      const orderProducts = await OrderProducts.findAll({
-        where: { orderId: order.id },
-      });
+      let amount: number = 0;
       const products = await Product.findAll({ where: { id: productIds } });
       if (action === "add") {
         if (!products || products.length === 0) {
