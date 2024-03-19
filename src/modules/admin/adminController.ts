@@ -15,6 +15,10 @@ import Image from "../product/imageModel";
 import Order from "../order/orderModel";
 import OrderProducts from "../order/orderProductsModel";
 
+//importing DB queries
+import DBQueries from "../services/dbQueries";
+const dbQueries = new DBQueries();
+
 //admin login
 export const loginAdmin: RequestHandler = async (req, res, next) => {
   try {
@@ -25,7 +29,9 @@ export const loginAdmin: RequestHandler = async (req, res, next) => {
         .status(400)
         .json({ message: "Please provide all the details." });
     }
-    const user = await User.findOne({ where: { email: email } });
+    const user: User | null | undefined = await dbQueries.findUserByEmail(
+      email
+    );
     if (!user) {
       console.log("No admin found with this email!");
       return res
@@ -60,33 +66,6 @@ const generateToken = (email: string) => {
   });
 };
 
-//reset password
-export const resetPassword: RequestHandler = async (req, res, next) => {
-  try {
-    const { email } = req.body.user;
-    const { password } = req.body;
-    const user: User | null = await User.findOne({ where: { email: email } });
-    if (!user) {
-      console.log("No user found with this email!");
-      return res
-        .status(400)
-        .json({ message: "No user found with this email!" });
-    }
-    //hashing password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    await User.update(
-      { password: hashedPassword },
-      { where: { email: email } }
-    );
-    return res.status(200).json({ message: "Password changed successfully." });
-  } catch (error) {
-    console.error("Error changing password :", error);
-    return res.status(400).json({ message: "Error changing password." });
-  }
-};
-
 //creating new product
 export const addProduct: RequestHandler = async (req, res, next) => {
   try {
@@ -119,23 +98,28 @@ export const addProduct: RequestHandler = async (req, res, next) => {
     if (!nameRegex.test(formData.name)) {
       return res.status(400).json({ message: "Invalid name." });
     }
-    const existingProduct = await Product.findOne({ where: { name: name } });
+    const existingProduct: Product | null | undefined =
+      await dbQueries.findProductByName(name);
     if (existingProduct) {
       return res
         .status(400)
         .json({ message: "A product with this name already exists." });
     }
-
     //price validations
     if (formData.selling_price > formData.regular_price) {
       return res.status(400).json({
         message: "Selling price shouldn't be greater than regular price.",
       });
     }
-
     //creating new product
-    const newProduct = await Product.create(formData);
-
+    const newProduct: Product | null | undefined =
+      await dbQueries.createProduct(formData);
+    if (!newProduct) {
+      console.log("An error happened while creating new product.");
+      return res.status(500).json({
+        message: "An error happened while creating new product.",
+      });
+    }
     //uploading image files
     const promises = (req.files as File[] | undefined)?.map(
       async (file: any) => {
@@ -148,10 +132,15 @@ export const addProduct: RequestHandler = async (req, res, next) => {
 
     if (promises) {
       await Promise.all(promises);
+      res
+        .status(200)
+        .json({ message: "Product added successfully", data: newProduct });
+    } else {
+      console.log(
+        "An error happened while creating the product: promises is null"
+      );
+      res.status(500).send("An error happened while creating the product.");
     }
-    res
-      .status(200)
-      .json({ message: "Product added successfully", data: newProduct });
   } catch (error) {
     console.error("Error creating product:", error);
     res.status(500).send("Error creating product");
@@ -194,46 +183,51 @@ export const updateProduct: RequestHandler = async (req, res, next) => {
     if (!nameRegex.test(formData.name)) {
       return res.status(400).json({ message: "Invalid name." });
     }
-    const existingProduct = await Product.findOne({
-      where: { name: name, id: { [Op.ne]: productId } },
-    });
-    if (existingProduct) {
-      return res
-        .status(400)
-        .json({ message: "A product with this name already exists." });
-    }
-
-    //price validations
-    if (formData.selling_price > formData.regular_price) {
-      return res.status(400).json({
-        message: "Selling price shouldn't be greater than regular price.",
-      });
-    }
-
-    //updating the product
-    const newProduct = await Product.update(formData, {
-      where: { id: productId },
-    });
-
-    //clearing existing images
-    await Image.destroy({ where: { productId: productId } });
-
-    //uploading image files
-    const promises = (req.files as File[] | undefined)?.map(
-      async (file: any) => {
-        await Image.create({
-          productId: productId,
-          image: file.originalname,
+    if (typeof productId === "string") {
+      const existingProduct: Product | null | undefined =
+        await dbQueries.checkForDuplicateProduct(
+          formData.name,
+          parseInt(productId, 10)
+        );
+      if (existingProduct) {
+        return res
+          .status(400)
+          .json({ message: "A product with this name already exists." });
+      }
+      //price validations
+      if (formData.selling_price > formData.regular_price) {
+        return res.status(400).json({
+          message: "Selling price shouldn't be greater than regular price.",
         });
       }
-    );
-
-    if (promises) {
-      await Promise.all(promises);
+      //updating the product
+      const newProduct = dbQueries.updateProduct(
+        formData,
+        parseInt(productId, 10)
+      );
+      //clearing existing images
+      const result: boolean = await dbQueries.clearExistingImages(
+        parseInt(productId, 10)
+      );
+      if (!result) {
+        console.log("An error happened while clearing old product images.");
+        return res.status(400).json({
+          message: "An error happened while clearing old product images.",
+        });
+      }
+      //uploading image files
+      const promises = (req.files as File[] | undefined)?.map(
+        async (file: any) => {
+          await dbQueries.saveProductImages(parseInt(productId, 10), file);
+        }
+      );
+      if (promises) {
+        await Promise.all(promises);
+      }
+      res
+        .status(200)
+        .json({ message: "Product updated successfully", data: newProduct });
     }
-    res
-      .status(200)
-      .json({ message: "Product updated successfully", data: newProduct });
   } catch (error) {
     console.error("Error updating product:", error);
     res.status(500).send("Error updating product");
@@ -245,44 +239,80 @@ export const toggleUserAccess: RequestHandler = async (req, res, next) => {
   try {
     const { userId } = req.query;
     if (userId) {
-      const user = await User.findByPk(userId as string, {});
-      if (user) {
-        user.isBlocked = !user.isBlocked;
-        await user?.save();
-        console.log("User status has been changed successfully.");
-        return res
-          .status(200)
-          .json({ message: "User status has been changed successfully." });
-      } else {
-        console.error("No user found.");
-        res.status(400).send("No user found.");
+      if (typeof userId === "string") {
+        const user: User | null | undefined = await dbQueries.findUserById(
+          parseInt(userId, 10)
+        );
+        if (user) {
+          user.isBlocked = !user.isBlocked;
+          await user?.save();
+          console.log("User status has been changed successfully.");
+          return res
+            .status(200)
+            .json({ message: "User status has been changed successfully." });
+        } else {
+          console.error("No user found.");
+          return res.status(400).send("No user found.");
+        }
       }
     } else {
       console.error("Please provide a user id.");
-      res.status(400).send("Please provide a user id.");
+      return res.status(400).send("Please provide a user id.");
     }
   } catch (error) {
     console.error("Error toggling user status:", error);
-    res.status(500).send("Error toggling user status.");
+    return res.status(500).send("Error toggling user status.");
   }
 };
 
 //delete an existing user
 export const deleteUser: RequestHandler = async (req, res, next) => {
-  const { id } = req.params;
-  const deletedUser: User | null = await User.findByPk(id);
-  await User.destroy({ where: { id } });
-  return res
-    .status(200)
-    .json({ message: "User deleted successfully.", data: deleteUser });
+  try {
+    const { id } = req.params;
+    if (!id) {
+      console.log("No user id received in params.");
+      return res.status(400).json({ message: "Please provide a user id." });
+    }
+    if (typeof id === "string") {
+      const userToDelete: User | null | undefined =
+        await dbQueries.findUserById(parseInt(id, 10));
+      if (!userToDelete) {
+        console.error("No user found with this id.");
+        return res.status(400).send("No user found with this id.");
+      }
+      const result: boolean = await dbQueries.deleteUserById(parseInt(id, 10));
+      if (!result) {
+        console.log("An error happened while deleting the user.");
+        return res
+          .status(500)
+          .json({ message: "An error happened while deleting the user." });
+      }
+      console.log("User deleted successfully.");
+      return res
+        .status(200)
+        .json({ message: "User deleted successfully.", data: deleteUser });
+    }
+  } catch (error) {
+    console.error("Error deleting user :", error);
+    return res.status(500).send("Error deleting user.");
+  }
 };
 
 //get all users
 export const getAllUsers: RequestHandler = async (req, res, next) => {
-  const allUsers: User[] = await User.findAll();
-  return res
-    .status(200)
-    .json({ message: "Fetched all users.", data: allUsers });
+  try {
+    const allUsers: User[] | [] | undefined = await dbQueries.findAllUsers();
+    if (!allUsers || allUsers.length === 0) {
+      console.log("No users found.");
+      return res.status(500).json({ message: "No users found." });
+    }
+    return res
+      .status(200)
+      .json({ message: "Fetched all users.", data: allUsers });
+  } catch (error) {
+    console.error("Error fetching all users :", error);
+    return res.status(500).send("Error fetching all users.");
+  }
 };
 
 //get all orders
@@ -300,8 +330,8 @@ export const getAllOrders: RequestHandler = async (req, res, next) => {
     let { startDate, endDate, today } = req.query;
     if (today) {
       const currDate = new Date();
-      const start = currDate.setDate(currDate.getDate() -1 );
-      const end = currDate.setDate(currDate.getDate() + 1 );
+      const start = currDate.setDate(currDate.getDate() - 1);
+      const end = currDate.setDate(currDate.getDate() + 1);
       queryOptions.where = {
         orderDate: {
           [Op.between]: [start, end],
@@ -327,8 +357,13 @@ export const getAllOrders: RequestHandler = async (req, res, next) => {
         },
       };
     }
-    const allOrders: Order[] = await Order.findAll(queryOptions);
-    const formattedOrders = allOrders.map((order: any) => {
+    const allOrders: Order[] | [] | undefined =
+      await dbQueries.findAllOrdersWithOptions(queryOptions);
+    if (!allOrders || allOrders.length === 0) {
+      console.log("No orders found.");
+      return res.status(400).json({ message: "No orders found." });
+    }
+    const formattedOrders: Object[] = allOrders.map((order: any) => {
       return { ...order.toJSON() };
     });
     formattedOrders.forEach((order: any) => {
@@ -355,150 +390,144 @@ export const approveOrder: RequestHandler = async (req, res, next) => {
     //getting user id from request query
     const { orderId } = req.query;
     if (orderId) {
-      const order = await Order.findByPk(orderId as string, {
-        include: [
-          {
-            model: OrderProducts,
-            as: "orderProducts",
-            include: [Product],
-          },
-        ],
-      });
-      if (!order) {
-        console.log("No order found with this order id.");
-        return res
-          .status(400)
-          .json({ message: "No order found with this order id." });
-      }
-      //getting user from user model
-      const user = await User.findByPk(order?.userId);
-      if (!user) {
-        console.log("No user found. User is not logged in.");
-        return res
-          .status(400)
-          .json({ message: "No user found. User is not logged in." });
-      }
-      //checking if the order is not null and order status is not approved already
-      if (order && order.orderStatus === "To be approved") {
-        //if yes, changing the status to "Approved"
-        order.orderStatus = "Approved";
-
-        const currDate = new Date();
-        const today = moment();
-        const targetDate = moment(today.add(3, "days"));
-        console.log(
-          "the target day :",
-          today,
-          " == ",
-          moment(today.add(3, "days"))
-        );
-        console.log(
-          "the WEEKEND CHECK :",
-          targetDate.format("dddd") === "Sunday"
-        );
-
-        order.expectedDeliveryDate = new Date(currDate);
-        let duration: number = 3;
-        if (
-          targetDate.format("dddd") === "Saturday" ||
-          targetDate.format("dddd") === "Sunday"
-        ) {
-          order.expectedDeliveryDate.setDate(currDate.getDate() + 5);
-          duration = 5;
-          console.log(
-            "delivery date while on weekends :",
-            order.expectedDeliveryDate
-          );
-        } else {
-          order.expectedDeliveryDate.setDate(currDate.getDate() + 3);
-          console.log(
-            "delivery date while on WEEKDAYS :",
-            order.expectedDeliveryDate
-          );
+      if (typeof orderId === "string") {
+        const order = await dbQueries.findOrderById(parseInt(orderId, 10));
+        if (!order) {
+          console.log("No order found with this order id.");
+          return res
+            .status(400)
+            .json({ message: "No order found with this order id." });
         }
-        await order?.save();
-        //creating notification info
-        const userId: number = order.userId;
-        const label: string = "Order approved!";
-        const content: string = `Your order with id:${order.id} has been approved by admin.`;
-        //calling notify service
-        await notify(userId, label, content);
-        //using mail service to notify the user about the status change
-        let productInfo: string = "";
-        order?.dataValues.orderProducts.forEach((item: any) => {
-          productInfo += `<li class="product">${item.Product.name} Price: ₹${item.Product.selling_price}</li>`;
-        });
-        const email = user.email;
-        const subject = "Order approval notification.";
-        const text = `Your order has been approved by admin.`;
-        const html = `<!DOCTYPE html>
-        <html lang="en">
-        <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Order Details</title>
-          <style>
-            body {
-              font-family: Arial, sans-serif;
-              line-height: 1.6;
-              margin: 0;
-              padding: 0;
-            }
-            .container {
-              max-width: 600px;
-              margin: 20px auto;
-              padding: 20px;
-              background-color: #f9f9f9;
-              border-radius: 5px;
-              box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            }
-            h1 {
-              color: #007bff;
-              text-align: center;
-            }
-            .order-details {
-              margin-bottom: 20px;
-            }
-            .products {
-              margin-left: 20px;
-            }
-            .product {
-              margin-bottom: 10px;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <h1>Your Order Details</h1>
-            <div class="order-details">
-              <p><strong>Your order has been approved by admin.</strong></p>
-              <p><strong>Order id:</strong> ${order.id}</p>
-              <p><strong>Order date:</strong> ${moment(order.orderDate).format(
-                "DD-MM-YYYY"
-              )}</p>
-              <p><strong>Expected delivery date:</strong> ${moment(
-                order.expectedDeliveryDate
-              ).format("DD-MM-YYYY")}</p>
-              <p><strong>Expected delivery duration:</strong> ${duration} days</p>
-              <p><strong>Products:</strong></p>
-              <ul class="products">${productInfo}</ul>
-              <p><strong>Total amount:</strong> ₹${order.totalAmount}/-</p>
+        //getting user from user model
+        const user = await dbQueries.findUserById(order.userId);
+        if (!user) {
+          console.log("No user found. User is not logged in.");
+          return res
+            .status(400)
+            .json({ message: "No user found. User is not logged in." });
+        }
+        //checking if the order is not null and order status is not approved already
+        if (order && order.orderStatus === "To be approved") {
+          //if yes, changing the status to "Approved"
+          order.orderStatus = "Approved";
+
+          const currDate = new Date();
+          const today = moment();
+          const targetDate = moment(today.add(3, "days"));
+          console.log(
+            "the target day :",
+            today,
+            " == ",
+            moment(today.add(3, "days"))
+          );
+          console.log(
+            "the WEEKEND CHECK :",
+            targetDate.format("dddd") === "Sunday"
+          );
+
+          order.expectedDeliveryDate = new Date(currDate);
+          let duration: number = 3;
+          if (
+            targetDate.format("dddd") === "Saturday" ||
+            targetDate.format("dddd") === "Sunday"
+          ) {
+            order.expectedDeliveryDate.setDate(currDate.getDate() + 5);
+            duration = 5;
+            console.log(
+              "delivery date while on weekends :",
+              order.expectedDeliveryDate
+            );
+          } else {
+            order.expectedDeliveryDate.setDate(currDate.getDate() + 3);
+            console.log(
+              "delivery date while on WEEKDAYS :",
+              order.expectedDeliveryDate
+            );
+          }
+          await order?.save();
+          //creating notification info
+          const userId: number = order.userId;
+          const label: string = "Order approved!";
+          const content: string = `Your order with id:${order.id} has been approved by admin.`;
+          //calling notify service
+          await notify(userId, label, content);
+          //using mail service to notify the user about the status change
+          let productInfo: string = "";
+          order?.dataValues.orderProducts.forEach((item: any) => {
+            productInfo += `<li class="product">${item.Product.name} Price: ₹${item.Product.selling_price}</li>`;
+          });
+          const email = user.email;
+          const subject = "Order approval notification.";
+          const text = `Your order has been approved by admin.`;
+          const html = `<!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Order Details</title>
+            <style>
+              body {
+                font-family: Arial, sans-serif;
+                line-height: 1.6;
+                margin: 0;
+                padding: 0;
+              }
+              .container {
+                max-width: 600px;
+                margin: 20px auto;
+                padding: 20px;
+                background-color: #f9f9f9;
+                border-radius: 5px;
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+              }
+              h1 {
+                color: #007bff;
+                text-align: center;
+              }
+              .order-details {
+                margin-bottom: 20px;
+              }
+              .products {
+                margin-left: 20px;
+              }
+              .product {
+                margin-bottom: 10px;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h1>Your Order Details</h1>
+              <div class="order-details">
+                <p><strong>Your order has been approved by admin.</strong></p>
+                <p><strong>Order id:</strong> ${order.id}</p>
+                <p><strong>Order date:</strong> ${moment(
+                  order.orderDate
+                ).format("DD-MM-YYYY")}</p>
+                <p><strong>Expected delivery date:</strong> ${moment(
+                  order.expectedDeliveryDate
+                ).format("DD-MM-YYYY")}</p>
+                <p><strong>Expected delivery duration:</strong> ${duration} days</p>
+                <p><strong>Products:</strong></p>
+                <ul class="products">${productInfo}</ul>
+                <p><strong>Total amount:</strong> ₹${order.totalAmount}/-</p>
+              </div>
             </div>
-          </div>
-        </body>
-        </html>
-        `;
-        await sendMail(email, subject, text, html);
-        console.log("Order has been approved successfully.");
-        return res
-          .status(200)
-          .json({ message: "Order has been approved successfully." });
-      } else if (order && order.orderStatus !== "To be approved") {
-        console.log("This order is already approved.");
-        res.status(400).send("This order is already approved.");
-      } else {
-        console.log("No order found.");
-        res.status(400).send("No order found.");
+          </body>
+          </html>
+          `;
+          await sendMail(email, subject, text, html);
+          console.log("Order has been approved successfully.");
+          return res
+            .status(200)
+            .json({ message: "Order has been approved successfully." });
+        } else if (order && order.orderStatus !== "To be approved") {
+          console.log("This order is already approved.");
+          res.status(400).send("This order is already approved.");
+        } else {
+          console.log("No order found.");
+          res.status(400).send("No order found.");
+        }
       }
     } else {
       console.error("Please provide an order id.");
@@ -512,11 +541,26 @@ export const approveOrder: RequestHandler = async (req, res, next) => {
 
 //get user by id
 export const getUserById: RequestHandler = async (req, res, next) => {
-  const { id } = req.params;
-  const user: User | null = await User.findByPk(id);
-  return res
-    .status(200)
-    .json({ message: "User fetched successfully.", data: user });
+  try {
+    const { id } = req.params;
+    if (!id) {
+      console.log("No user id received in params.");
+      return res.status(400).json({ message: "Please provide a user id." });
+    }
+    if (typeof id === "string") {
+      const userToDelete: User | null | undefined =
+        await dbQueries.findUserById(parseInt(id, 10));
+      const user: User | null | undefined = await dbQueries.findUserById(
+        parseInt(id, 10)
+      );
+      return res
+        .status(200)
+        .json({ message: "User fetched successfully.", data: user });
+    }
+  } catch (error) {
+    console.error("Error in getUserById function.", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
 };
 
 export const notifyAllUsers: RequestHandler = async (req, res, next) => {

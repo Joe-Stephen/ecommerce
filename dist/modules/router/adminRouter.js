@@ -7,12 +7,14 @@ const express_1 = require("express");
 const adminRouter = (0, express_1.Router)();
 //admin functions
 const adminController_1 = require("../admin/adminController");
+const userController_1 = require("../user/userController");
 //middlewares
 const multerMiddleware_1 = __importDefault(require("../admin/multerMiddleware"));
 const adminAuthentication_1 = __importDefault(require("../admin/adminAuthentication"));
 const notificationController_1 = require("../notifications/notificationController");
 //admin functionalities
 adminRouter.post("/login", adminController_1.loginAdmin);
+adminRouter.patch("/resetPassword", adminAuthentication_1.default, userController_1.resetPassword);
 adminRouter.post("/product", adminAuthentication_1.default, multerMiddleware_1.default.array("images"), adminController_1.addProduct);
 adminRouter.post("/updateProduct", adminAuthentication_1.default, multerMiddleware_1.default.array("images"), adminController_1.updateProduct);
 adminRouter.get("/", adminAuthentication_1.default, adminController_1.getAllUsers);

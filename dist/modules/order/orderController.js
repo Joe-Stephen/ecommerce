@@ -198,7 +198,6 @@ const editOrder = (req, res, next) => __awaiter(void 0, void 0, void 0, function
     try {
         const { orderId } = req.query;
         const { productIds, action } = req.body;
-        let amount = 0;
         if (!orderId || !productIds || !action) {
             console.log("No order/productId/quantity provided in the req.query.");
             return res
@@ -215,9 +214,7 @@ const editOrder = (req, res, next) => __awaiter(void 0, void 0, void 0, function
             return res.status(400).json({ message: "This order cannot be edited." });
         }
         else {
-            const orderProducts = yield orderProductsModel_1.default.findAll({
-                where: { orderId: order.id },
-            });
+            let amount = 0;
             const products = yield productModel_1.default.findAll({ where: { id: productIds } });
             if (action === "add") {
                 if (!products || products.length === 0) {
@@ -298,3 +295,77 @@ const editOrder = (req, res, next) => __awaiter(void 0, void 0, void 0, function
     }
 });
 exports.editOrder = editOrder;
+// export const editOrder: RequestHandler = async (req, res, next) => {
+//   try {
+//     const { orderId } = req.query;
+//     const { productIds, action } = req.body;
+//     if (!orderId || !productIds || !action) {
+//       console.log("No order/productId/action provided in the request.");
+//       return res
+//         .status(400)
+//         .json({ message: "Please provide all the details." });
+//     }
+//     const order = await Order.findOne({ where: { id: orderId } });
+//     if (!order) {
+//       console.log("No order found with this id.");
+//       return res.status(400).json({ message: "No order found with this id." });
+//     }
+//     if (order.orderStatus !== "To be approved") {
+//       console.log("This order cannot be edited.");
+//       return res.status(400).json({ message: "This order cannot be edited." });
+//     }
+//     let amount: number = 0;
+//     const products = await Product.findAll({ where: { id: productIds } });
+//     if (!products || products.length === 0) {
+//       console.log("No products specified for action.");
+//       return res.status(400).json({ message: "Please specify products." });
+//     }
+//     const promises: Promise<any>[] = products.map(async (product: any) => {
+//       const existingProduct = await OrderProducts.findOne({
+//         where: { productId: product.id, orderId: orderId },
+//       });
+//       if (action === "add") {
+//         amount += product.selling_price;
+//         if (existingProduct) {
+//           await OrderProducts.update(
+//             { quantity: existingProduct.quantity + 1 },
+//             { where: { id: existingProduct.id } }
+//           );
+//         } else {
+//           await OrderProducts.create({
+//             orderId: orderId,
+//             productId: product.id,
+//             price: product.selling_price,
+//             quantity: 1,
+//           });
+//         }
+//       } else if (action === "remove") {
+//         if (existingProduct) {
+//           amount += existingProduct.price;
+//           if (existingProduct.quantity > 1) {
+//             existingProduct.quantity -= 1;
+//             await existingProduct.save();
+//           } else {
+//             await OrderProducts.destroy({
+//               where: { id: existingProduct.id },
+//             });
+//           }
+//         } else {
+//           console.log(`${product.name} is not in the order.`);
+//         }
+//       }
+//     });
+//     await Promise.all(promises);
+//     if (action === "add") {
+//       order.totalAmount += amount;
+//     } else if (action === "remove") {
+//       order.totalAmount -= amount;
+//     }
+//     await order.save();
+//     console.log("Order has been edited.");
+//     return res.status(200).json({ message: "Order has been edited." });
+//   } catch (error) {
+//     console.error("An error occurred in editOrder function:", error);
+//     return res.status(500).json({ message: "Couldn't edit the order." });
+//   }
+// };

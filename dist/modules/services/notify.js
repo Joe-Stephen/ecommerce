@@ -15,25 +15,23 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.notifySelected = exports.notifyAll = exports.notify = void 0;
 const notificationModel_1 = __importDefault(require("../notifications/notificationModel"));
 const userModel_1 = __importDefault(require("../user/userModel"));
+const dbQueries_1 = __importDefault(require("./dbQueries"));
+const dbQueries = new dbQueries_1.default();
 //creating notification
 const notify = (userId, label, content) => __awaiter(void 0, void 0, void 0, function* () {
-    const notification = yield notificationModel_1.default.create({
-        userId,
-        label,
-        content,
-    });
+    const notification = yield dbQueries.createNotificationInBulk(userId, label, content);
     return notification;
 });
 exports.notify = notify;
 const notifyAll = (label, content) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const allUsers = yield userModel_1.default.findAll();
-        if (!allUsers) {
+        const allUsers = yield dbQueries.findAllUsers();
+        if (!allUsers || allUsers.length === 0) {
             console.log("No users found!");
             return null;
         }
         const promises = allUsers.forEach((user) => __awaiter(void 0, void 0, void 0, function* () {
-            yield notificationModel_1.default.create({ userId: user.id, label, content });
+            yield dbQueries.createNotificationForOne(user.id, label, content);
         }));
         if (promises) {
             yield Promise.all(promises);

@@ -1,28 +1,30 @@
 import Notification from "../notifications/notificationModel";
 import User from "../user/userModel";
+import DBQueries from "./dbQueries";
+const dbQueries = new DBQueries();
 //creating notification
 export const notify = async (
   userId: number,
   label: string,
   content: string
 ) => {
-  const notification = await Notification.create({
+  const notification = await dbQueries.createNotificationInBulk(
     userId,
     label,
-    content,
-  });
+    content
+  );
   return notification;
 };
 
 export const notifyAll = async (label: string, content: string) => {
   try {
-    const allUsers = await User.findAll();
-    if (!allUsers) {
+    const allUsers: User[] | [] | undefined = await dbQueries.findAllUsers();
+    if (!allUsers || allUsers.length===0) {
       console.log("No users found!");
       return null;
     }
     const promises: any = allUsers.forEach(async (user: any) => {
-      await Notification.create({ userId: user.id, label, content });
+      await dbQueries.createNotificationForOne( user.id, label, content );
     });
     if (promises) {
       await Promise.all(promises);
@@ -34,11 +36,15 @@ export const notifyAll = async (label: string, content: string) => {
   }
 };
 
-export const notifySelected = async (ids:number[], label: string, content: string) => {
+export const notifySelected = async (
+  ids: number[],
+  label: string,
+  content: string
+) => {
   try {
-    const selectedUsers = await User.findAll({where:{id:ids}});
-    console.log("the selected users :",selectedUsers);
-    
+    const selectedUsers = await User.findAll({ where: { id: ids } });
+    console.log("the selected users :", selectedUsers);
+
     if (!selectedUsers) {
       console.log("No users found!");
       return null;

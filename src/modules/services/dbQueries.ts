@@ -1,0 +1,199 @@
+import { Op } from "sequelize";
+
+//importing models
+import User from "../user/userModel";
+import Product from "../product/productModel";
+import Image from "../product/imageModel";
+import Order from "../order/orderModel";
+import OrderProducts from "../order/orderProductsModel";
+import Notification from "../notifications/notificationModel";
+
+export default class DBQueries {
+    
+  //-----USER TABLE QUERIES-----//
+
+  //find all users
+  async findAllUsers() {
+    try {
+      const users: User[] | [] = await User.findAll();
+      return users;
+    } catch (error) {
+      console.error("Error in findUserByEmail :", error);
+    }
+  }
+
+  //find a user by email
+  async findUserByEmail(email: string) {
+    try {
+      const user: User | null = await User.findOne({ where: { email: email } });
+      return user;
+    } catch (error) {
+      console.error("Error in findUserByEmail :", error);
+    }
+  }
+
+  //find a user by id
+  async findUserById(userId: number) {
+    try {
+      const user: User | null = await User.findByPk(userId, {});
+      return user;
+    } catch (error) {
+      console.error("Error in findUserById :", error);
+    }
+  }
+
+  //delete a user by id
+  async deleteUserById(id: number) {
+    try {
+      await User.destroy({ where: { id } });
+      return true;
+    } catch (error) {
+      console.error("Error in deleteUserByPk :", error);
+      return false;
+    }
+  }
+
+  //-----PRODUCT TABLE QUERIES-----//
+
+  //find a product by name and not equal to provided id
+  async checkForDuplicateProduct(name: string, productId: number) {
+    try {
+      const existingProduct: Product | null = await Product.findOne({
+        where: { name: name, id: { [Op.ne]: productId } },
+      });
+      return existingProduct;
+    } catch (error) {
+      console.error("Error in checkForDuplicateProduct :", error);
+    }
+  }
+  //find a product by name
+  async findProductByName(name: string) {
+    try {
+      const product: Product | null = await Product.findOne({
+        where: { name: name },
+      });
+      return product;
+    } catch (error) {
+      console.error("Error in findProductByName :", error);
+    }
+  }
+  //create a new product
+  async createProduct(formData: {}) {
+    try {
+      const newProduct: Product | null = await Product.create(formData);
+      return newProduct;
+    } catch (error) {
+      console.error("Error in createProduct :", error);
+    }
+  }
+  //update a product
+  async updateProduct(formData: {}, productId: number) {
+    try {
+      const updatedProduct = await Product.update(formData, {
+        where: { id: productId },
+      });
+      return updatedProduct;
+    } catch (error) {
+      console.error("Error in createProduct :", error);
+    }
+  }
+
+  //-----IMAGE TABLE QUERIES-----//
+
+  //clear existing images of a product
+  async clearExistingImages(productId: number) {
+    try {
+      await Image.destroy({ where: { productId: productId } });
+      return true;
+    } catch (error) {
+      console.error("Error in clearExistingImages :", error);
+      return false;
+    }
+  }
+  //save images of a product
+  async saveProductImages(productId: number, file: any) {
+    try {
+      await Image.create({
+        productId: productId,
+        image: file.originalname,
+      });
+      return true;
+    } catch (error) {
+      console.error("Error in saveProductImages :", error);
+      return false;
+    }
+  }
+
+  //-----ORDER TABLE QUERIES-----//
+
+  //find all orders with provided query-options
+  async findAllOrdersWithOptions(queryOptions: {}) {
+    try {
+      const orders: Order[] | [] = await Order.findAll(queryOptions);
+      return orders;
+    } catch (error) {
+      console.error("Error in findAllOrdersWithOptions :", error);
+    }
+  }
+
+  //find an order using id
+  async findOrderById(orderId: number) {
+    try {
+      const order: Order | null = await Order.findByPk(orderId, {
+        include: [
+          {
+            model: OrderProducts,
+            as: "orderProducts",
+            include: [Product],
+          },
+        ],
+      });
+      return order;
+    } catch (error) {
+      console.error("Error in findOrderWithId :", error);
+    }
+  }
+
+  //-----NOTIFICATION TABLE QUERIES-----//
+
+  //create notifications for the provided ids (as array)
+  async createNotificationInBulk(userId: number, label: string, content: string) {
+    try {
+      const notifications = await Notification.create({
+        userId,
+        label,
+        content,
+      });
+      return notifications;
+    } catch (error) {
+      console.error("Error in createNotification :", error);
+    }
+  }
+
+  //create notifications for all the users
+  async createNotificationForAll(label: string, content: string) {
+    try {
+      const notifications = await Notification.create({
+        label,
+        content,
+      });
+      return notifications;
+    } catch (error) {
+      console.error("Error in createNotificationForAll :", error);
+    }
+  }
+
+  //create notifications for a single user
+  async createNotificationForOne(userId:number, label: string, content: string) {
+    try {
+      const notification = await Notification.create({
+        userId:userId,
+        label:label,
+        content:content,
+      });
+      return notification;
+    } catch (error) {
+      console.error("Error in createNotificationForAll :", error);
+    }
+  }
+}

@@ -11,6 +11,10 @@ import Image from "../product/imageModel";
 import Product from "../product/productModel";
 import Verifications from "./verificationsModel";
 
+//importing DB queries
+import DBQueries from "../services/dbQueries";
+const dbQueries=new DBQueries();
+
 export const createUser: RequestHandler = async (req, res, next) => {
   const { username, email, password } = req.body;
 
@@ -140,7 +144,7 @@ export const loginUser: RequestHandler = async (req, res, next) => {
         .json({ message: "Login successfull", data: loggedInUser });
     } else {
       console.log("Incorrect password.");
-      return res.status(201).json({ message: "Incorrect password.l" });
+      return res.status(201).json({ message: "Incorrect password" });
     }
   } catch (error) {
     console.error("Error in login function :", error);
@@ -194,7 +198,7 @@ export const resetPassword: RequestHandler = async (req, res, next) => {
   try {
     const { email } = req.body.user;
     const { password } = req.body;
-    const user: User | null = await User.findOne({ where: { email: email } });
+    const user:any =await dbQueries.findUserByEmail(email);
     if (!user) {
       console.log("No user found with this email!");
       return res
@@ -204,11 +208,9 @@ export const resetPassword: RequestHandler = async (req, res, next) => {
     //hashing password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
-
-    await User.update(
-      { password: hashedPassword },
-      { where: { email: email } }
-    );
+    //updating password and saving document
+    user.password=hashedPassword;
+    await user.save();
     return res.status(200).json({ message: "Password changed successfully." });
   } catch (error) {
     console.error("Error changing password :", error);

@@ -15,6 +15,7 @@ import {
   notifyAllUsers,
   notifySelectedUsers
 } from "../admin/adminController";
+import { resetPassword } from "../user/userController";
 
 //middlewares
 import upload from "../admin/multerMiddleware";
@@ -23,6 +24,7 @@ import { toggleStatus } from "../notifications/notificationController";
 
 //admin functionalities
 adminRouter.post("/login", loginAdmin);
+adminRouter.patch("/resetPassword", verifyAdmin, resetPassword);
 adminRouter.post("/product", verifyAdmin, upload.array("images"), addProduct);
 adminRouter.post("/updateProduct", verifyAdmin, upload.array("images"), updateProduct);
 adminRouter.get("/", verifyAdmin, getAllUsers);

@@ -23,6 +23,9 @@ const userModel_1 = __importDefault(require("../user/userModel"));
 const imageModel_1 = __importDefault(require("../product/imageModel"));
 const productModel_1 = __importDefault(require("../product/productModel"));
 const verificationsModel_1 = __importDefault(require("./verificationsModel"));
+//importing DB queries
+const dbQueries_1 = __importDefault(require("../services/dbQueries"));
+const dbQueries = new dbQueries_1.default();
 const createUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     const { username, email, password } = req.body;
     if (!username || !email || !password) {
@@ -150,7 +153,7 @@ const loginUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function
         }
         else {
             console.log("Incorrect password.");
-            return res.status(201).json({ message: "Incorrect password.l" });
+            return res.status(201).json({ message: "Incorrect password" });
         }
     }
     catch (error) {
@@ -201,7 +204,7 @@ const resetPassword = (req, res, next) => __awaiter(void 0, void 0, void 0, func
     try {
         const { email } = req.body.user;
         const { password } = req.body;
-        const user = yield userModel_1.default.findOne({ where: { email: email } });
+        const user = yield dbQueries.findUserByEmail(email);
         if (!user) {
             console.log("No user found with this email!");
             return res
@@ -211,7 +214,9 @@ const resetPassword = (req, res, next) => __awaiter(void 0, void 0, void 0, func
         //hashing password
         const salt = yield bcrypt_1.default.genSalt(10);
         const hashedPassword = yield bcrypt_1.default.hash(password, salt);
-        yield userModel_1.default.update({ password: hashedPassword }, { where: { email: email } });
+        //updating password and saving document
+        user.password = hashedPassword;
+        yield user.save();
         return res.status(200).json({ message: "Password changed successfully." });
     }
     catch (error) {
