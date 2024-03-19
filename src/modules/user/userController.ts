@@ -13,17 +13,19 @@ import Verifications from "./verificationsModel";
 
 //importing DB queries
 import DBQueries from "../services/dbQueries";
-const dbQueries=new DBQueries();
+const dbQueries = new DBQueries();
 
+//@desc creating a new user
+//@route POST /
+//@access Public
 export const createUser: RequestHandler = async (req, res, next) => {
   const { username, email, password } = req.body;
-
   if (!username || !email || !password) {
     console.log("Please provide all the details.");
     return res.status(400).json({ message: "Please provide all the details." });
   }
   //checking for existing user
-  const existingUser = await User.findOne({ where: { email: email } });
+  const existingUser = await dbQueries.findUserByEmail(email);
   if (existingUser) {
     console.log("This email is already registered.");
     return res
@@ -36,11 +38,17 @@ export const createUser: RequestHandler = async (req, res, next) => {
   const hashedPassword = await bcrypt.hash(password, salt);
 
   //user creation
-  const user: User | null = await User.create({
+  const user: User | null | undefined = await dbQueries.createUser(
     username,
     email,
-    password: hashedPassword,
-  });
+    hashedPassword
+  );
+  if (!user) {
+    console.log("Error in the create user function.");
+    return res
+      .status(500)
+      .json({ message: "Error in the create user function." });
+  }
   return res
     .status(200)
     .json({ message: "User created successfully", data: user });
@@ -56,8 +64,7 @@ export const sendVerifyMail: RequestHandler = async (req, res, next) => {
       return res.status(400).json("Please enter your email.");
     }
     console.log(`Received email= ${email}`);
-
-    const existingUser = await User.findOne({ where: { email } });
+    const existingUser = await dbQueries.findUserByEmail(email);
     if (existingUser) {
       console.log("This email is already registered!");
       return res
@@ -69,7 +76,7 @@ export const sendVerifyMail: RequestHandler = async (req, res, next) => {
       const text: string = `Your OTP for verification is ${otp}`;
       //sending otp
       await sendMail(email, subject, text);
-      const verificationDoc = await Verifications.create({ email, otp });
+      const verificationDoc = await dbQueries.createVerification(email, otp);
       console.log(`OTP has been saved to verifications : ${verificationDoc}`);
       console.log(`Otp has been sent to ${email}.`);
       return res.status(201).json("Otp has been sent to your email address.");
@@ -91,16 +98,15 @@ export const verifyOtp: RequestHandler = async (req, res, next) => {
     }
     console.log(`Received otp attempt= ${otpAttempt}`);
     console.log(`Received email= ${email}`);
-
     //checking for an existing user with the same email id
-    const existingDoc = await Verifications.findOne({ where: { email } });
+    const existingDoc = await dbQueries.findVerificationByEmail(email);
     if (!existingDoc) {
       return res
         .status(400)
         .json({ message: "No document found with this email." });
     }
     if (otpAttempt === existingDoc.otp) {
-      await Verifications.destroy({ where: { email } });
+      dbQueries.destroyVerificationByEmail(email);
       return res.status(200).json({ message: "Mail verified successfully." });
     }
     return res.status(400).json({ message: "Incorrect otp." });
@@ -114,9 +120,6 @@ export const verifyOtp: RequestHandler = async (req, res, next) => {
 
 export const loginUser: RequestHandler = async (req, res, next) => {
   try {
-    console.log("user login function called ");
-    console.log("req.body :", req.body);
-
     const { email, password } = req.body;
     if (!email || !password) {
       console.log("Please provide all the details.");
@@ -124,7 +127,9 @@ export const loginUser: RequestHandler = async (req, res, next) => {
         .status(400)
         .json({ message: "Please provide all the details." });
     }
-    const user = await User.findOne({ where: { email: email } });
+    const user: User | null | undefined = await dbQueries.findUserByEmail(
+      email
+    );
     if (!user) {
       console.log("No user found with this email!");
       return res
@@ -158,26 +163,25 @@ export const getAllProducts: RequestHandler = async (req, res, next) => {
     const count = 5;
     const skip = (parseInt(page as string) - 1) * count;
     const whereCondition: any = { isBlocked: false };
-
     if (searchKey) whereCondition.name = { [Op.like]: `%${searchKey}%` };
-
     const orderCondition: any = sortType
       ? [["selling_price", `${sortType}`]]
       : [];
-
-    const products = await Product.findAll({
-      limit: count,
-      offset: skip,
-      where: whereCondition,
-      order: orderCondition,
-      include: [{ model: Image, attributes: ["image"] }],
-    });
-
+    const products: Product[] | [] | undefined =
+      await dbQueries.findAllProductsWithFilter(
+        count,
+        skip,
+        whereCondition,
+        orderCondition
+      );
+    if (!products) {
+      console.log("No products found.");
+      return res.status(500).json({ message: "No products has been found." });
+    }
     const allProducts = products.map((product: any) => {
       const imageUrls = product.Images.map((image: any) => image.image);
       return { ...product.toJSON(), Images: imageUrls };
     });
-
     return res
       .status(200)
       .json({ message: "Products fetched successfully.", data: allProducts });
@@ -198,7 +202,9 @@ export const resetPassword: RequestHandler = async (req, res, next) => {
   try {
     const { email } = req.body.user;
     const { password } = req.body;
-    const user:any =await dbQueries.findUserByEmail(email);
+    const user: User | null | undefined = await dbQueries.findUserByEmail(
+      email
+    );
     if (!user) {
       console.log("No user found with this email!");
       return res
@@ -209,7 +215,7 @@ export const resetPassword: RequestHandler = async (req, res, next) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
     //updating password and saving document
-    user.password=hashedPassword;
+    user.password = hashedPassword;
     await user.save();
     return res.status(200).json({ message: "Password changed successfully." });
   } catch (error) {
@@ -218,58 +224,63 @@ export const resetPassword: RequestHandler = async (req, res, next) => {
   }
 };
 
-export const addProduct: RequestHandler = async (req, res, next) => {
+//get user by id
+export const getUserById: RequestHandler = async (req, res, next) => {
   try {
-    console.log("body in upload :", req.files);
-
-    const promises = (req.files as File[] | undefined)?.map(
-      async (file: any) => {
-        await Image.create({
-          postId: req.body.postId,
-          image: file.originalname,
-        });
-      }
-    );
-
-    if (promises) {
-      await Promise.all(promises);
-      res.status(200).send("Images uploaded successfully");
+    const { id } = req.params;
+    if (!id) {
+      console.log("No user id received in params.");
+      return res.status(400).json({ message: "Please provide a user id." });
+    }
+    if (typeof id === "string") {
+      const userToDelete: User | null | undefined =
+        await dbQueries.findUserById(parseInt(id, 10));
+      const user: User | null | undefined = await dbQueries.findUserById(
+        parseInt(id, 10)
+      );
+      return res
+        .status(200)
+        .json({ message: "User fetched successfully.", data: user });
     }
   } catch (error) {
-    console.error("Error uploading images:", error);
-    res.status(500).send("Error uploading images");
+    console.error("Error in getUserById function.", error);
+    res.status(500).json({ message: "Internal server error." });
   }
 };
 
-export const deleteUser: RequestHandler = async (req, res, next) => {
-  const { id } = req.params;
-  const deletedUser: User | null = await User.findByPk(id);
-  await User.destroy({ where: { id } });
-  return res
-    .status(200)
-    .json({ message: "User deleted successfully.", data: deleteUser });
-};
-
-export const getAllUsers: RequestHandler = async (req, res, next) => {
-  const allUsers: User[] = await User.findAll();
-  return res
-    .status(200)
-    .json({ message: "Fetched all users.", data: allUsers });
-};
-
-export const getUserById: RequestHandler = async (req, res, next) => {
-  const { id } = req.params;
-  const user: User | null = await User.findByPk(id);
-  return res
-    .status(200)
-    .json({ message: "User fetched successfully.", data: user });
-};
-
 export const updateUser: RequestHandler = async (req, res, next) => {
-  const { id } = req.params;
-  await User.update({ ...req.body }, { where: { id } });
-  const updatedUser: User | null = await User.findByPk(id);
-  return res
-    .status(200)
-    .json({ message: "User updated successfully.", data: updateUser });
+  try {
+    const { id } = req.params;
+    const { username, email, password } = req.body;
+    if (!username || !email || !password) {
+      console.log("Please provide all the details.");
+      return res
+        .status(400)
+        .json({ message: "Please provide all the details." });
+    }
+    if (typeof id === "string") {
+      const existingUser: User | null | undefined =
+        await dbQueries.checkForDuplicateUser(email, parseInt(id, 10));
+      if (existingUser) {
+        return res
+          .status(400)
+          .json({ message: "A product with this name already exists." });
+      }
+      //hashing password
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(password, salt);
+      await dbQueries.updateUserById(
+        parseInt(id),
+        username,
+        email,
+        hashedPassword
+      );
+      const updatedUser: User | null | undefined = await dbQueries.findUserById(
+        parseInt(id, 10)
+      );
+      return res
+        .status(200)
+        .json({ message: "User updated successfully.", data: updatedUser });
+    }
+  } catch (error) {}
 };

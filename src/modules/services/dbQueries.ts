@@ -7,10 +7,40 @@ import Image from "../product/imageModel";
 import Order from "../order/orderModel";
 import OrderProducts from "../order/orderProductsModel";
 import Notification from "../notifications/notificationModel";
+import Verifications from "../user/verificationsModel";
 
 export default class DBQueries {
-    
   //-----USER TABLE QUERIES-----//
+
+  //create new user
+  async createUser(username: string, email: string, hashedPassword: string) {
+    try {
+      const user: User | null = await User.create({
+        username,
+        email,
+        password: hashedPassword,
+      });
+      return user;
+    } catch (error) {
+      console.error("Error in findUserByEmail :", error);
+    }
+  }
+
+  //update a user by id
+  async updateUserById(
+    id: number,
+    username: string,
+    email: string,
+    password: string
+  ) {
+    try {
+      await User.update({ username, email, password }, { where: { id } });
+      return true;
+    } catch (error) {
+      console.error("Error in updateUserById :", error);
+      return false;
+    }
+  }
 
   //find all users
   async findAllUsers() {
@@ -53,6 +83,18 @@ export default class DBQueries {
     }
   }
 
+  //find a user by email and not equal to provided id
+  async checkForDuplicateUser(email: string, id: number) {
+    try {
+      const existingUser: User | null = await User.findOne({
+        where: { email: email, id: { [Op.ne]: id } },
+      });
+      return existingUser;
+    } catch (error) {
+      console.error("Error in checkForDuplicateUser :", error);
+    }
+  }
+
   //-----PRODUCT TABLE QUERIES-----//
 
   //find a product by name and not equal to provided id
@@ -75,6 +117,26 @@ export default class DBQueries {
       return product;
     } catch (error) {
       console.error("Error in findProductByName :", error);
+    }
+  }
+  //find all products with considering provided filter
+  async findAllProductsWithFilter(
+    count: number,
+    skip: number,
+    whereCondition: {},
+    orderCondition: []
+  ) {
+    try {
+      const products: Product[] | [] = await Product.findAll({
+        limit: count,
+        offset: skip,
+        where: whereCondition,
+        order: orderCondition,
+        include: [{ model: Image, attributes: ["image"] }],
+      });
+      return products;
+    } catch (error) {
+      console.error("Error in findAllProducts :", error);
     }
   }
   //create a new product
@@ -157,7 +219,11 @@ export default class DBQueries {
   //-----NOTIFICATION TABLE QUERIES-----//
 
   //create notifications for the provided ids (as array)
-  async createNotificationInBulk(userId: number, label: string, content: string) {
+  async createNotificationInBulk(
+    userId: number,
+    label: string,
+    content: string
+  ) {
     try {
       const notifications = await Notification.create({
         userId,
@@ -184,16 +250,56 @@ export default class DBQueries {
   }
 
   //create notifications for a single user
-  async createNotificationForOne(userId:number, label: string, content: string) {
+  async createNotificationForOne(
+    userId: number,
+    label: string,
+    content: string
+  ) {
     try {
       const notification = await Notification.create({
-        userId:userId,
-        label:label,
-        content:content,
+        userId,
+        label,
+        content,
       });
       return notification;
     } catch (error) {
       console.error("Error in createNotificationForAll :", error);
+    }
+  }
+
+  //-----VERIFICATIONS TABLE QUERIES-----//
+
+  //creating an verification entry (for otp)
+  async createVerification(email: string, otp: string) {
+    try {
+      const verification = await Verifications.create({
+        email,
+        otp,
+      });
+      return verification;
+    } catch (error) {
+      console.error("Error in createVerification :", error);
+    }
+  }
+
+  //finding a verification by email
+  async findVerificationByEmail(email: string) {
+    try {
+      const verification = await Verifications.findOne({ where: { email } });
+      return verification;
+    } catch (error) {
+      console.error("Error in findVerificationByEmail :", error);
+    }
+  }
+
+  //destroying a verification by email
+  async destroyVerificationByEmail(email: string) {
+    try {
+      await Verifications.destroy({ where: { email } });
+      return true;
+    } catch (error) {
+      console.error("Error in findVerificationByEmail :", error);
+      return false;
     }
   }
 }
