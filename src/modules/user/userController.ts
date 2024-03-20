@@ -3,13 +3,13 @@ import { Op } from "sequelize";
 import { generateOtp } from "../services/otpGenerator";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+
+//importing services
 import { sendMail } from "../services/sendMail";
 
 //model imports
 import User from "../user/userModel";
-import Image from "../product/imageModel";
 import Product from "../product/productModel";
-import Verifications from "./verificationsModel";
 
 //importing DB queries
 import DBQueries from "../services/dbQueries";

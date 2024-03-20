@@ -1,19 +1,19 @@
 import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
-import User from "../user/userModel";
+
+//importing db queries
+import DBQueries from "../services/dbQueries";
+const dbQueries=new DBQueries();
 
 const verifyUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
     //get token from the header
     const token = req.headers.authorization!.split(" ")[1];
-
     //verify token
     const decoded: any = jwt.verify(token, process.env.JWT_SECRET as string);
-
     //get user from the token
     req.body.user = decoded;
-    const user = await User.findOne({ where: { email: decoded.email } });
-    if (!user) {
+    const user = await dbQueries.findUserByEmail(decoded.email);    if (!user) {
       console.log("No user found with this email address!");
       return res
         .status(500)

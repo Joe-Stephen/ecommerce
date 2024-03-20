@@ -2,28 +2,23 @@ import { RequestHandler } from "express";
 
 //model imports
 import User from "../user/userModel";
-import Product from "../product/productModel";
 import Cart from "../cart/cartModel";
 import CartProducts from "../cart/cartProductsModel";
+
+//importing DB queries
+import DBQueries from "../services/dbQueries";
+const dbQueries = new DBQueries();
 
 export const getUserCart: RequestHandler = async (req, res, next) => {
   try {
     const loggedInUser = req.body.user;
-    const userWithCart = await User.findOne({
-      where: { email: loggedInUser.email },
-      include: [
-        {
-          model: Cart,
-          include: [Product],
-        },
-      ],
-    });
+    const userWithCart: User | null | undefined =
+      await dbQueries.findUserWithCartByEmail(loggedInUser.email);
     if (!userWithCart?.dataValues.Cart) {
       console.log("User cart is empty.");
       return res.status(400).json({ message: "Your cart is empty." });
     }
     const productsInCart = userWithCart?.dataValues.Cart.dataValues.Products;
-    console.log("The products in cart object :", productsInCart);
     const productArray = productsInCart.map(
       (product: any) => product.dataValues
     );
@@ -47,7 +42,6 @@ export const getUserCart: RequestHandler = async (req, res, next) => {
 export const addToCart: RequestHandler = async (req, res, next) => {
   try {
     const loggedInUser = req.body.user;
-    console.log("the user in req is :", loggedInUser.email);
     const { productId } = req.query;
     if (!productId) {
       console.log("No productId in query params.");
@@ -61,48 +55,62 @@ export const addToCart: RequestHandler = async (req, res, next) => {
         .status(400)
         .json({ message: "No user found. User is not logged in." });
     }
-    const user = await User.findOne({ where: { email: loggedInUser.email } });
-    if (!user) {
-      console.log("No user found. User is not logged in.");
-      return res
-        .status(400)
-        .json({ message: "No user found. User is not logged in." });
-    }
-    let userCart = await Cart.findOne({ where: { userId: user.id } });
-    if (!userCart) {
-      userCart = await Cart.create({
-        userId: user.id,
-      });
-      await CartProducts.create({
-        cartId: userCart.id,
-        productId: productId,
-        quantity: 1,
-      });
-      console.log("Product has been added to cart.");
-      return res
-        .status(200)
-        .json({ message: "Created cart and added product to cart." });
-    } else {
-      const existingProduct = await CartProducts.findOne({
-        where: { cartId: userCart.id, productId: productId },
-      });
-      if (!existingProduct) {
-        CartProducts.create({
-          cartId: userCart.id,
-          productId: productId,
-          quantity: 1,
-        });
+    if (typeof productId === "string") {
+      //finding the user
+      const user: User | null | undefined = await dbQueries.findUserByEmail(
+        loggedInUser.email
+      );
+      if (!user) {
+        console.log("No user found. User is not logged in.");
+        return res
+          .status(400)
+          .json({ message: "No user found. User is not logged in." });
+      }
+      //finding user cart
+      let userCart: Cart | null | undefined = await dbQueries.findCartByUserId(
+        user.id
+      );
+      if (!userCart) {
+        //creating user cart
+        userCart = await dbQueries.createCart(user.id);
+        if (userCart) {
+          //creating cart product
+          await dbQueries.createCartProduct(
+            userCart.id,
+            parseInt(productId),
+            1
+          );
+        }
         console.log("Product has been added to cart.");
         return res
           .status(200)
-          .json({ message: "Product has been added to cart." });
+          .json({ message: "Created cart and added product to cart." });
       } else {
-        existingProduct.quantity += 1;
-        await existingProduct.save();
-        console.log("Product quantity has been increased.");
-        return res
-          .status(200)
-          .json({ message: "Product quantity has been increased." });
+        const existingProduct: CartProducts | null | undefined =
+          await dbQueries.findExistingCartProduct(
+            userCart.id,
+            parseInt(productId)
+          );
+        if (!existingProduct) {
+          //creating cart product
+          await dbQueries.createCartProduct(
+            userCart.id,
+            parseInt(productId),
+            1
+          );
+          console.log("Product has been added to cart.");
+          return res
+            .status(200)
+            .json({ message: "Product has been added to cart." });
+        } else {
+          //incrementing quantity of existing cart product
+          existingProduct.quantity += 1;
+          await existingProduct.save();
+          console.log("Product quantity has been increased.");
+          return res
+            .status(200)
+            .json({ message: "Product quantity has been increased." });
+        }
       }
     }
   } catch (error) {
@@ -113,60 +121,125 @@ export const addToCart: RequestHandler = async (req, res, next) => {
 
 export const decreaseCartQuantity: RequestHandler = async (req, res, next) => {
   try {
-    let userCart = await Cart.findOne({ where: { userId: 1 } });
-    if (!userCart) {
-      console.log("No cart found.");
-      return res.status(400).json({ message: "No cart found." });
-    } else {
-      const existingProduct = await CartProducts.findOne({
-        where: { cartId: 3, productId: 5 },
-      });
-      if (!existingProduct) {
-        console.log("This product is not in the cart.");
+    const loggedInUser = req.body.user;
+    if (!loggedInUser) {
+      console.log("No user found. User is not logged in.");
+      return res
+        .status(400)
+        .json({ message: "No user found. User is not logged in." });
+    }
+    const { productId } = req.query;
+    if (!productId) {
+      console.log("No productId in query params.");
+      return res
+        .status(400)
+        .json({ message: "Please provide a product id as query param." });
+    }
+    if (typeof productId === "string") {
+      //finding the user
+      const user: User | null | undefined = await dbQueries.findUserByEmail(
+        loggedInUser.email
+      );
+      if (!user) {
+        console.log("No user found. User is not logged in.");
         return res
           .status(400)
-          .json({ message: "This product is not in the cart." });
-      } else if (existingProduct.quantity > 1) {
-        existingProduct.quantity -= 1;
-        await existingProduct.save();
-        console.log("Product quantity has been reduced.");
-        return res
-          .status(200)
-          .json({ message: "Product has been added to cart." });
-      } else if (existingProduct.quantity === 1) {
-        await CartProducts.destroy({ where: { cartId: 3, productId: 5 } });
-        console.log("Product has been removed.");
-        return res.status(200).json({ message: "Product has been removed." });
+          .json({ message: "No user found. User is not logged in." });
+      }
+      //finding user cart
+      let userCart: Cart | null | undefined = await dbQueries.findCartByUserId(
+        user.id
+      );
+      if (!userCart) {
+        console.log("No cart found.");
+        return res.status(400).json({ message: "No cart found." });
+      } else {
+        const existingProduct: CartProducts | null | undefined =
+          await dbQueries.findExistingCartProduct(
+            userCart.id,
+            parseInt(productId)
+          );
+        if (!existingProduct) {
+          console.log("This product is not in the cart.");
+          return res
+            .status(400)
+            .json({ message: "This product is not in the cart." });
+        } else if (existingProduct.quantity > 1) {
+          existingProduct.quantity -= 1;
+          await existingProduct.save();
+          console.log("Product quantity has been reduced.");
+          return res
+            .status(200)
+            .json({ message: "Product has been added to cart." });
+        } else if (existingProduct.quantity === 1) {
+          await dbQueries.destroyCartProduct(userCart.id, parseInt(productId));
+          console.log("Product has been removed.");
+          return res.status(200).json({ message: "Product has been removed." });
+        }
       }
     }
   } catch (error) {
     console.error("Error in user decreaseCartQuantity function :", error);
-    return res.status(400).json({ message: "Couldn't decreaseCartQuantity." });
+    return res
+      .status(400)
+      .json({ message: "Couldn't decrease cart quantity." });
   }
 };
 
 export const increaseCartQuantity: RequestHandler = async (req, res, next) => {
   try {
-    let userCart = await Cart.findOne({ where: { userId: 1 } });
-    if (!userCart) {
-      console.log("No cart found.");
-      return res.status(400).json({ message: "No cart found." });
-    } else {
-      const existingProduct = await CartProducts.findOne({
-        where: { cartId: 3, productId: 5 },
-      });
-      if (!existingProduct) {
-        console.log("This product is not in the cart.");
+    const loggedInUser = req.body.user;
+    if (!loggedInUser) {
+      console.log("No user found. User is not logged in.");
+      return res
+        .status(400)
+        .json({ message: "No user found. User is not logged in." });
+    }
+    const { productId } = req.query;
+    if (!productId) {
+      console.log("No productId in query params.");
+      return res
+        .status(400)
+        .json({ message: "Please provide a product id as query param." });
+    }
+    if (typeof productId === "string") {
+      //finding the user
+      const user: User | null | undefined = await dbQueries.findUserByEmail(
+        loggedInUser.email
+      );
+      if (!user) {
+        console.log("No user found. User is not logged in.");
         return res
           .status(400)
-          .json({ message: "This product is not in the cart." });
-      } else if (existingProduct) {
-        existingProduct.quantity += 1;
-        await existingProduct.save();
-        console.log("Product quantity has been increased.");
-        return res
-          .status(200)
-          .json({ message: "Product quantity has been increased." });
+          .json({ message: "No user found. User is not logged in." });
+      }
+
+      //finding user cart
+      let userCart: Cart | null | undefined = await dbQueries.findCartByUserId(
+        user.id
+      );
+      if (!userCart) {
+        console.log("No cart found.");
+        return res.status(400).json({ message: "No cart found." });
+      } else {
+        const existingProduct: CartProducts | null | undefined =
+          await dbQueries.findExistingCartProduct(
+            userCart.id,
+            parseInt(productId)
+          );
+        if (!existingProduct) {
+          console.log("This product is not in the cart.");
+          return res
+            .status(400)
+            .json({ message: "This product is not in the cart." });
+        } else if (existingProduct) {
+          existingProduct.quantity += 1;
+          await existingProduct.save();
+          console.log("Product quantity has been increased.");
+          return res
+            .status(200)
+            .json({ message: "Product quantity has been increased." });
+        }
       }
     }
   } catch (error) {
@@ -177,24 +250,55 @@ export const increaseCartQuantity: RequestHandler = async (req, res, next) => {
 
 export const removeCartItem: RequestHandler = async (req, res, next) => {
   try {
-    console.log(req.body);
-    let userCart = await Cart.findOne({ where: { userId: 1 } });
-    if (!userCart) {
-      console.log("No cart found.");
-      return res.status(400).json({ message: "No cart found." });
-    } else {
-      const existingProduct = await CartProducts.findOne({
-        where: { cartId: 1, productId: 3 },
-      });
-      if (!existingProduct) {
-        console.log("This product is not in the cart.");
+    const loggedInUser = req.body.user;
+    if (!loggedInUser) {
+      console.log("No user found. User is not logged in.");
+      return res
+        .status(400)
+        .json({ message: "No user found. User is not logged in." });
+    }
+    const { productId } = req.query;
+    if (!productId) {
+      console.log("No productId in query params.");
+      return res
+        .status(400)
+        .json({ message: "Please provide a product id as query param." });
+    }
+    if (typeof productId === "string") {
+      //finding the user
+      const user: User | null | undefined = await dbQueries.findUserByEmail(
+        loggedInUser.email
+      );
+      if (!user) {
+        console.log("No user found. User is not logged in.");
         return res
           .status(400)
-          .json({ message: "This product is not in the cart." });
-      } else if (existingProduct) {
-        await CartProducts.destroy({ where: { cartId: 1, productId: 3 } });
-        console.log("Product has been removed.");
-        return res.status(200).json({ message: "Product has been removed." });
+          .json({ message: "No user found. User is not logged in." });
+      }
+
+      //finding user cart
+      let userCart: Cart | null | undefined = await dbQueries.findCartByUserId(
+        user.id
+      );
+      if (!userCart) {
+        console.log("No cart found.");
+        return res.status(400).json({ message: "No cart found." });
+      } else {
+        const existingProduct: CartProducts | null | undefined =
+          await dbQueries.findExistingCartProduct(
+            userCart.id,
+            parseInt(productId)
+          );
+        if (!existingProduct) {
+          console.log("This product is not in the cart.");
+          return res
+            .status(400)
+            .json({ message: "This product is not in the cart." });
+        } else if (existingProduct) {
+          await dbQueries.destroyCartProduct(userCart.id, parseInt(productId));
+          console.log("Product has been removed.");
+          return res.status(200).json({ message: "Product has been removed." });
+        }
       }
     }
   } catch (error) {

@@ -3,11 +3,13 @@ import { Op } from "sequelize";
 //importing models
 import User from "../user/userModel";
 import Product from "../product/productModel";
+import Cart from "../cart/cartModel";
 import Image from "../product/imageModel";
 import Order from "../order/orderModel";
 import OrderProducts from "../order/orderProductsModel";
 import Notification from "../notifications/notificationModel";
 import Verifications from "../user/verificationsModel";
+import CartProducts from "../cart/cartProductsModel";
 
 export default class DBQueries {
   //-----USER TABLE QUERIES-----//
@@ -55,10 +57,28 @@ export default class DBQueries {
   //find a user by email
   async findUserByEmail(email: string) {
     try {
-      const user: User | null = await User.findOne({ where: { email: email } });
+      const user: User | null = await User.findOne({ where: { email } });
       return user;
     } catch (error) {
       console.error("Error in findUserByEmail :", error);
+    }
+  }
+
+  //find a user with cart by email
+  async findUserWithCartByEmail(email: string) {
+    try {
+      const userWithCart: User | null = await User.findOne({
+        where: { email },
+        include: [
+          {
+            model: Cart,
+            include: [Product],
+          },
+        ],
+      });
+      return userWithCart;
+    } catch (error) {
+      console.error("Error in findUserWithCartByEmail :", error);
     }
   }
 
@@ -301,5 +321,63 @@ export default class DBQueries {
       console.error("Error in findVerificationByEmail :", error);
       return false;
     }
+  }
+
+  //-----NOTIFICATION TABLE QUERIES-----//
+
+  //create a cart
+  async createCart(userId: number) {
+    try {
+      const cart: Cart | null = await Cart.create({
+        userId,
+      });
+      return cart;
+    } catch (error) {
+      console.error("Error in createCart :", error);
+    }
+  }
+
+  //find a cart by user id
+  async findCartByUserId(userId: number) {
+    try {
+      const cart: Cart | null = await Cart.findOne({ where: { userId } });
+      return cart;
+    } catch (error) {
+      console.error("Error in createCart :", error);
+    }
+  }
+
+  //decrease quantity of product in cart
+
+  //-----CARTPRODUCTS TABLE QUERIES-----//
+
+  //create cart product
+  async createCartProduct(cartId: number, productId: number, quantity: number) {
+    try {
+      await CartProducts.create({ cartId, productId, quantity });
+      return true;
+    } catch (error) {
+      console.error("Error in createOrderProduct :", error);
+      return false;
+    }
+  }
+
+  //find a product in cart products by cart id and product id
+  async findExistingCartProduct(cartId: number, productId: number) {
+    try {
+      const cartProduct: CartProducts | null = await CartProducts.findOne({
+        where: { cartId, productId },
+      });
+      return cartProduct;
+    } catch (error) {
+      console.error("Error in findExistingCartProduct :", error);
+    }
+  }
+
+  //destroy a cart product by cart id and product id
+  async destroyCartProduct(cartId: number, productId: number) {
+    try {
+      await CartProducts.destroy({ where: { cartId, productId } });
+    } catch (error) {}
   }
 }
