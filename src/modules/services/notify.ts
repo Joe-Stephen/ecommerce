@@ -1,14 +1,16 @@
-import Notification from "../notifications/notificationModel";
 import User from "../user/userModel";
+
+//importing services
 import DBQueries from "./dbQueries";
 const dbQueries = new DBQueries();
+
 //creating notification
 export const notify = async (
   userId: number,
   label: string,
   content: string
 ) => {
-  const notification = await dbQueries.createNotificationInBulk(
+  const notification = await dbQueries.createNotificationForOne(
     userId,
     label,
     content
@@ -42,15 +44,13 @@ export const notifySelected = async (
   content: string
 ) => {
   try {
-    const selectedUsers = await User.findAll({ where: { id: ids } });
-    console.log("the selected users :", selectedUsers);
-
+    const selectedUsers = await dbQueries.findAllUsersInArray(ids);
     if (!selectedUsers) {
       console.log("No users found!");
       return null;
     }
     const promises: any = selectedUsers.forEach(async (user: any) => {
-      await Notification.create({ userId: user.id, label, content });
+      await dbQueries.createNotificationForOne(user.id, label, content);
     });
     if (promises) {
       await Promise.all(promises);

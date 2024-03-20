@@ -117,6 +117,16 @@ export default class DBQueries {
     }
   }
 
+  //find all users in ids array
+  async findAllUsersInArray(ids: number[]) {
+    try {
+      const users: User[] | [] = await User.findAll({ where: { ids } });
+      return users;
+    } catch (error) {
+      console.error("Error in findAllUsersInArray :", error);
+    }
+  }
+
   //-----PRODUCT TABLE QUERIES-----//
 
   //find a product by name and not equal to provided id
@@ -269,12 +279,8 @@ export default class DBQueries {
 
   //-----NOTIFICATION TABLE QUERIES-----//
 
-  //create notifications for the provided ids (as array)
-  async createNotificationInBulk(
-    userId: number,
-    label: string,
-    content: string
-  ) {
+  //create notifications for the user by id
+  async createNotification(userId: number, label: string, content: string) {
     try {
       const notifications = await Notification.create({
         userId,
@@ -284,19 +290,6 @@ export default class DBQueries {
       return notifications;
     } catch (error) {
       console.error("Error in createNotification :", error);
-    }
-  }
-
-  //create notifications for all the users
-  async createNotificationForAll(label: string, content: string) {
-    try {
-      const notifications = await Notification.create({
-        label,
-        content,
-      });
-      return notifications;
-    } catch (error) {
-      console.error("Error in createNotificationForAll :", error);
     }
   }
 
