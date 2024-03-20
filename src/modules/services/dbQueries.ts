@@ -10,6 +10,7 @@ import OrderProducts from "../order/orderProductsModel";
 import Notification from "../notifications/notificationModel";
 import Verifications from "../user/verificationsModel";
 import CartProducts from "../cart/cartProductsModel";
+import sequelize from "../config/db";
 
 export default class DBQueries {
   //-----USER TABLE QUERIES-----//
@@ -287,6 +288,32 @@ export default class DBQueries {
     }
   }
 
+  //find all notifications by user id
+  async findAllNotificationsByUserId(userId: number) {
+    try {
+      const notifications: Notification[] | [] = await Notification.findAll({
+        where: { userId },
+      });
+      return notifications;
+    } catch (error) {
+      console.error("Error in findAllNotificationsByUserId :", error);
+    }
+  }
+
+  //toggle status by provided array of ids
+  async toggleStatusByIdArray(ids: number[]) {
+    try {
+      await Notification.update(
+        { checked: sequelize.literal("NOT checked") },
+        { where: { ids } }
+      );
+      return true;
+    } catch (error) {
+      console.error("Error in findAllNotificationsByIdArray :", error);
+      return false;
+    }
+  }
+
   //-----VERIFICATIONS TABLE QUERIES-----//
 
   //creating an verification entry (for otp)
@@ -323,7 +350,7 @@ export default class DBQueries {
     }
   }
 
-  //-----NOTIFICATION TABLE QUERIES-----//
+  //-----CART TABLE QUERIES-----//
 
   //create a cart
   async createCart(userId: number) {

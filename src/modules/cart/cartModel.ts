@@ -28,5 +28,4 @@ Cart.init(
   }
 );
 
-
 export default Cart;
