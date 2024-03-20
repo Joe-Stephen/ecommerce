@@ -1,4 +1,5 @@
 import { Op } from "sequelize";
+import sequelize from "../config/db";
 
 //importing models
 import User from "../user/userModel";
@@ -10,7 +11,7 @@ import OrderProducts from "../order/orderProductsModel";
 import Notification from "../notifications/notificationModel";
 import Verifications from "../user/verificationsModel";
 import CartProducts from "../cart/cartProductsModel";
-import sequelize from "../config/db";
+import Cancel from "../order/cancelOrderModel";
 
 export default class DBQueries {
   //-----USER TABLE QUERIES-----//
@@ -129,6 +130,7 @@ export default class DBQueries {
       console.error("Error in checkForDuplicateProduct :", error);
     }
   }
+
   //find a product by name
   async findProductByName(name: string) {
     try {
@@ -140,6 +142,7 @@ export default class DBQueries {
       console.error("Error in findProductByName :", error);
     }
   }
+
   //find all products with considering provided filter
   async findAllProductsWithFilter(
     count: number,
@@ -160,6 +163,19 @@ export default class DBQueries {
       console.error("Error in findAllProducts :", error);
     }
   }
+
+  //find products for the provided ids (as array)
+  async findAllProductsInArray(ids: number[]) {
+    try {
+      const products = await Product.findAll({
+        where: { ids },
+      });
+      return products;
+    } catch (error) {
+      console.error("Error in findProductsInArray :", error);
+    }
+  }
+
   //create a new product
   async createProduct(formData: {}) {
     try {
@@ -169,6 +185,7 @@ export default class DBQueries {
       console.error("Error in createProduct :", error);
     }
   }
+
   //update a product
   async updateProduct(formData: {}, productId: number) {
     try {
@@ -234,6 +251,19 @@ export default class DBQueries {
       return order;
     } catch (error) {
       console.error("Error in findOrderWithId :", error);
+    }
+  }
+
+  //create new order
+  async createOrder(userId: number, totalAmount: number) {
+    try {
+      const newOrder: Order | null = await Order.create({
+        userId,
+        totalAmount,
+      });
+      return newOrder;
+    } catch (error) {
+      console.error("Error in createOrder :", error);
     }
   }
 
@@ -374,7 +404,16 @@ export default class DBQueries {
     }
   }
 
-  //decrease quantity of product in cart
+  //destroy a cart by user id
+  async destroyCart(userId: number) {
+    try {
+      await Cart.destroy({ where: { userId } });
+      return true;
+    } catch (error) {
+      console.error("Error in createCart :", error);
+      return false;
+    }
+  }
 
   //-----CARTPRODUCTS TABLE QUERIES-----//
 
@@ -405,6 +444,101 @@ export default class DBQueries {
   async destroyCartProduct(cartId: number, productId: number) {
     try {
       await CartProducts.destroy({ where: { cartId, productId } });
-    } catch (error) {}
+      return true;
+    } catch (error) {
+      console.error("Error in destroyCartProduct :", error);
+      return false;
+    }
+  }
+
+  //destroy all cart products in a cart by cart id
+  async destroyAllCartProducts(cartId: number) {
+    try {
+      await CartProducts.destroy({ where: { cartId } });
+      return true;
+    } catch (error) {
+      console.error("Error in destroyAllCartProducts :", error);
+      return false;
+    }
+  }
+
+  //-----ORDERPRODUCTS TABLE QUERIES-----//
+
+  //create order product
+  async createOrderProduct(
+    orderId: number,
+    productId: number,
+    price: number,
+    quantity: number
+  ) {
+    try {
+      await OrderProducts.create({ orderId, productId, price, quantity });
+      return true;
+    } catch (error) {
+      console.error("Error in createOrderProduct :", error);
+      return false;
+    }
+  }
+
+  //update quantity of order product by id
+  async updateOrderProductQty(quantity: number, id: number) {
+    try {
+      await OrderProducts.update({ quantity }, { where: { id } });
+      return true;
+    } catch (error) {
+      console.error("Error in updateOrderProductQty :", error);
+      return false;
+    }
+  }
+
+  //destroy an order product by id
+  async destroyOrdertProduct(id: number) {
+    try {
+      await OrderProducts.destroy({ where: { id } });
+      return true;
+    } catch (error) {
+      console.error("Error in destroyOrdertProduct :", error);
+      return false;
+    }
+  }
+
+  //find a order product by product id and order id
+  async findOrderProductByProductAndOrderIds(
+    productId: number,
+    orderId: number
+  ) {
+    try {
+      const orderProduct: OrderProducts | null = await OrderProducts.findOne({
+        where: { productId, orderId },
+      });
+      return orderProduct;
+    } catch (error) {
+      console.error("Error in findOrderProductByProductAndOrderIds :", error);
+    }
+  }
+
+  //find all order products of an order
+  async findAllOrderProducts(orderId: number) {
+    try {
+      const orderProducts: OrderProducts[] | [] = await OrderProducts.findAll({
+        where: { orderId },
+      });
+      return orderProducts;
+    } catch (error) {
+      console.error("Error in createOrderProduct :", error);
+    }
+  }
+
+  //-----CANCEL TABLE QUERIES-----//
+
+  //create a cancel request
+  async createCancelRequest(orderId: number, reason: string) {
+    try {
+      await Cancel.create({ orderId, reason });
+      return true;
+    } catch (error) {
+      console.error("Error in createOrderProduct :", error);
+      return false;
+    }
   }
 }
