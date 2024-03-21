@@ -12,20 +12,19 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateUser = exports.getUserById = exports.getAllUsers = exports.deleteUser = exports.addProduct = exports.resetPassword = exports.getAllProducts = exports.loginUser = exports.verifyOtp = exports.sendVerifyMail = exports.createUser = void 0;
+exports.updateUser = exports.getUserById = exports.resetPassword = exports.getAllProducts = exports.loginUser = exports.verifyOtp = exports.sendVerifyMail = exports.createUser = void 0;
 const sequelize_1 = require("sequelize");
 const otpGenerator_1 = require("../services/otpGenerator");
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+//importing services
 const sendMail_1 = require("../services/sendMail");
-//model imports
-const userModel_1 = __importDefault(require("../user/userModel"));
-const imageModel_1 = __importDefault(require("../product/imageModel"));
-const productModel_1 = __importDefault(require("../product/productModel"));
-const verificationsModel_1 = __importDefault(require("./verificationsModel"));
 //importing DB queries
 const dbQueries_1 = __importDefault(require("../services/dbQueries"));
 const dbQueries = new dbQueries_1.default();
+//@desc creating a new user
+//@route POST /
+//@access Public
 const createUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     const { username, email, password } = req.body;
     if (!username || !email || !password) {
@@ -33,7 +32,7 @@ const createUser = (req, res, next) => __awaiter(void 0, void 0, void 0, functio
         return res.status(400).json({ message: "Please provide all the details." });
     }
     //checking for existing user
-    const existingUser = yield userModel_1.default.findOne({ where: { email: email } });
+    const existingUser = yield dbQueries.findUserByEmail(email);
     if (existingUser) {
         console.log("This email is already registered.");
         return res
@@ -44,11 +43,13 @@ const createUser = (req, res, next) => __awaiter(void 0, void 0, void 0, functio
     const salt = yield bcrypt_1.default.genSalt(10);
     const hashedPassword = yield bcrypt_1.default.hash(password, salt);
     //user creation
-    const user = yield userModel_1.default.create({
-        username,
-        email,
-        password: hashedPassword,
-    });
+    const user = yield dbQueries.createUser(username, email, hashedPassword);
+    if (!user) {
+        console.log("Error in the create user function.");
+        return res
+            .status(500)
+            .json({ message: "Error in the create user function." });
+    }
     return res
         .status(200)
         .json({ message: "User created successfully", data: user });
@@ -64,7 +65,7 @@ const sendVerifyMail = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
             return res.status(400).json("Please enter your email.");
         }
         console.log(`Received email= ${email}`);
-        const existingUser = yield userModel_1.default.findOne({ where: { email } });
+        const existingUser = yield dbQueries.findUserByEmail(email);
         if (existingUser) {
             console.log("This email is already registered!");
             return res
@@ -77,7 +78,7 @@ const sendVerifyMail = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
             const text = `Your OTP for verification is ${otp}`;
             //sending otp
             yield (0, sendMail_1.sendMail)(email, subject, text);
-            const verificationDoc = yield verificationsModel_1.default.create({ email, otp });
+            const verificationDoc = yield dbQueries.createVerification(email, otp);
             console.log(`OTP has been saved to verifications : ${verificationDoc}`);
             console.log(`Otp has been sent to ${email}.`);
             return res.status(201).json("Otp has been sent to your email address.");
@@ -101,14 +102,14 @@ const verifyOtp = (req, res, next) => __awaiter(void 0, void 0, void 0, function
         console.log(`Received otp attempt= ${otpAttempt}`);
         console.log(`Received email= ${email}`);
         //checking for an existing user with the same email id
-        const existingDoc = yield verificationsModel_1.default.findOne({ where: { email } });
+        const existingDoc = yield dbQueries.findVerificationByEmail(email);
         if (!existingDoc) {
             return res
                 .status(400)
                 .json({ message: "No document found with this email." });
         }
         if (otpAttempt === existingDoc.otp) {
-            yield verificationsModel_1.default.destroy({ where: { email } });
+            dbQueries.destroyVerificationByEmail(email);
             return res.status(200).json({ message: "Mail verified successfully." });
         }
         return res.status(400).json({ message: "Incorrect otp." });
@@ -123,8 +124,6 @@ const verifyOtp = (req, res, next) => __awaiter(void 0, void 0, void 0, function
 exports.verifyOtp = verifyOtp;
 const loginUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        console.log("user login function called ");
-        console.log("req.body :", req.body);
         const { email, password } = req.body;
         if (!email || !password) {
             console.log("Please provide all the details.");
@@ -132,7 +131,7 @@ const loginUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function
                 .status(400)
                 .json({ message: "Please provide all the details." });
         }
-        const user = yield userModel_1.default.findOne({ where: { email: email } });
+        const user = yield dbQueries.findUserByEmail(email);
         if (!user) {
             console.log("No user found with this email!");
             return res
@@ -173,13 +172,11 @@ const getAllProducts = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
         const orderCondition = sortType
             ? [["selling_price", `${sortType}`]]
             : [];
-        const products = yield productModel_1.default.findAll({
-            limit: count,
-            offset: skip,
-            where: whereCondition,
-            order: orderCondition,
-            include: [{ model: imageModel_1.default, attributes: ["image"] }],
-        });
+        const products = yield dbQueries.findAllProductsWithFilter(count, skip, whereCondition, orderCondition);
+        if (!products) {
+            console.log("No products found.");
+            return res.status(500).json({ message: "No products has been found." });
+        }
         const allProducts = products.map((product) => {
             const imageUrls = product.Images.map((image) => image.image);
             return Object.assign(Object.assign({}, product.toJSON()), { Images: imageUrls });
@@ -225,57 +222,55 @@ const resetPassword = (req, res, next) => __awaiter(void 0, void 0, void 0, func
     }
 });
 exports.resetPassword = resetPassword;
-const addProduct = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+//get user by id
+const getUserById = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        console.log("body in upload :", req.files);
-        const promises = (_a = req.files) === null || _a === void 0 ? void 0 : _a.map((file) => __awaiter(void 0, void 0, void 0, function* () {
-            yield imageModel_1.default.create({
-                postId: req.body.postId,
-                image: file.originalname,
-            });
-        }));
-        if (promises) {
-            yield Promise.all(promises);
-            res.status(200).send("Images uploaded successfully");
+        const { id } = req.params;
+        if (!id) {
+            console.log("No user id received in params.");
+            return res.status(400).json({ message: "Please provide a user id." });
+        }
+        if (typeof id === "string") {
+            const userToDelete = yield dbQueries.findUserById(parseInt(id, 10));
+            const user = yield dbQueries.findUserById(parseInt(id, 10));
+            return res
+                .status(200)
+                .json({ message: "User fetched successfully.", data: user });
         }
     }
     catch (error) {
-        console.error("Error uploading images:", error);
-        res.status(500).send("Error uploading images");
+        console.error("Error in getUserById function.", error);
+        res.status(500).json({ message: "Internal server error." });
     }
-});
-exports.addProduct = addProduct;
-const deleteUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    const { id } = req.params;
-    const deletedUser = yield userModel_1.default.findByPk(id);
-    yield userModel_1.default.destroy({ where: { id } });
-    return res
-        .status(200)
-        .json({ message: "User deleted successfully.", data: exports.deleteUser });
-});
-exports.deleteUser = deleteUser;
-const getAllUsers = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    const allUsers = yield userModel_1.default.findAll();
-    return res
-        .status(200)
-        .json({ message: "Fetched all users.", data: allUsers });
-});
-exports.getAllUsers = getAllUsers;
-const getUserById = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    const { id } = req.params;
-    const user = yield userModel_1.default.findByPk(id);
-    return res
-        .status(200)
-        .json({ message: "User fetched successfully.", data: user });
 });
 exports.getUserById = getUserById;
 const updateUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    const { id } = req.params;
-    yield userModel_1.default.update(Object.assign({}, req.body), { where: { id } });
-    const updatedUser = yield userModel_1.default.findByPk(id);
-    return res
-        .status(200)
-        .json({ message: "User updated successfully.", data: exports.updateUser });
+    try {
+        const { id } = req.params;
+        const { username, email, password } = req.body;
+        if (!username || !email || !password) {
+            console.log("Please provide all the details.");
+            return res
+                .status(400)
+                .json({ message: "Please provide all the details." });
+        }
+        if (typeof id === "string") {
+            const existingUser = yield dbQueries.checkForDuplicateUser(email, parseInt(id, 10));
+            if (existingUser) {
+                return res
+                    .status(400)
+                    .json({ message: "A product with this name already exists." });
+            }
+            //hashing password
+            const salt = yield bcrypt_1.default.genSalt(10);
+            const hashedPassword = yield bcrypt_1.default.hash(password, salt);
+            yield dbQueries.updateUserById(parseInt(id), username, email, hashedPassword);
+            const updatedUser = yield dbQueries.findUserById(parseInt(id, 10));
+            return res
+                .status(200)
+                .json({ message: "User updated successfully.", data: updatedUser });
+        }
+    }
+    catch (error) { }
 });
 exports.updateUser = updateUser;

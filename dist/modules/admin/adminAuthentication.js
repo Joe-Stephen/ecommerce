@@ -13,7 +13,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-const userModel_1 = __importDefault(require("../user/userModel"));
+//importing db queries
+const dbQueries_1 = __importDefault(require("../services/dbQueries"));
+const dbQueries = new dbQueries_1.default();
 const verifyAdmin = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         //get token from the header
@@ -22,7 +24,7 @@ const verifyAdmin = (req, res, next) => __awaiter(void 0, void 0, void 0, functi
         const decoded = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET);
         //get user from the token
         req.body.user = decoded;
-        const user = yield userModel_1.default.findOne({ where: { email: decoded.email } });
+        const user = yield dbQueries.findUserByEmail(decoded.email);
         const currentTime = Math.floor(Date.now() / 1000);
         if (currentTime < decoded.exp) {
             if (user === null || user === void 0 ? void 0 : user.isAdmin) {

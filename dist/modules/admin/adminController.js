@@ -12,7 +12,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.notifySelectedUsers = exports.notifyAllUsers = exports.getUserById = exports.approveOrder = exports.getAllOrders = exports.getAllUsers = exports.deleteUser = exports.toggleUserAccess = exports.updateProduct = exports.addProduct = exports.loginAdmin = void 0;
+exports.notifySelectedUsers = exports.notifyAllUsers = exports.notifyUser = exports.getUserById = exports.approveOrder = exports.getAllOrders = exports.getAllUsers = exports.deleteUser = exports.toggleUserAccess = exports.updateProduct = exports.addProduct = exports.loginAdmin = void 0;
+//importing websocket modules
+const index_1 = require("../../index");
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const sequelize_1 = require("sequelize");
@@ -402,19 +404,15 @@ const approveOrder = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
                     const currDate = new Date();
                     const today = (0, moment_1.default)();
                     const targetDate = (0, moment_1.default)(today.add(3, "days"));
-                    console.log("the target day :", today, " == ", (0, moment_1.default)(today.add(3, "days")));
-                    console.log("the WEEKEND CHECK :", targetDate.format("dddd") === "Sunday");
                     order.expectedDeliveryDate = new Date(currDate);
                     let duration = 3;
                     if (targetDate.format("dddd") === "Saturday" ||
                         targetDate.format("dddd") === "Sunday") {
                         order.expectedDeliveryDate.setDate(currDate.getDate() + 5);
                         duration = 5;
-                        console.log("delivery date while on weekends :", order.expectedDeliveryDate);
                     }
                     else {
                         order.expectedDeliveryDate.setDate(currDate.getDate() + 3);
-                        console.log("delivery date while on WEEKDAYS :", order.expectedDeliveryDate);
                     }
                     yield (order === null || order === void 0 ? void 0 : order.save());
                     //creating notification info
@@ -533,6 +531,24 @@ const getUserById = (req, res, next) => __awaiter(void 0, void 0, void 0, functi
     }
 });
 exports.getUserById = getUserById;
+const notifyUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { label, content } = req.body;
+        if (!label || !content) {
+            console.log("No label or content found in the request body.");
+            return res.status(400).json({ message: "Please provide all the fields." });
+        }
+        yield dbQueries.createNotificationForOne(2, label, content);
+        index_1.io.emit("notifyClient", label + " " + content);
+        console.log("The user has been notified.");
+        return res.status(200).json({ message: "The user has been notified." });
+    }
+    catch (error) {
+        console.error("Error in notifyUser function:", error);
+        return res.status(500).json({ message: "Internal server error." });
+    }
+});
+exports.notifyUser = notifyUser;
 const notifyAllUsers = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { label, content } = req.body;

@@ -1,5 +1,6 @@
 import { Router } from "express";
 const adminRouter = Router();
+import { io } from "../../index";
 
 //admin functions
 import {
@@ -13,7 +14,8 @@ import {
   approveOrder,
   updateProduct,
   notifyAllUsers,
-  notifySelectedUsers
+  notifySelectedUsers,
+  notifyUser
 } from "../admin/adminController";
 import { resetPassword } from "../user/userController";
 
@@ -23,6 +25,7 @@ import verifyAdmin from "../admin/adminAuthentication";
 import { toggleStatus } from "../notifications/notificationController";
 
 //admin functionalities
+adminRouter.post("/notify", verifyAdmin, notifyUser);
 adminRouter.post("/login", loginAdmin);
 adminRouter.patch("/resetPassword", verifyAdmin, resetPassword);
 adminRouter.post("/product", verifyAdmin, upload.array("images"), addProduct);

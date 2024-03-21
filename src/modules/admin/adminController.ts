@@ -1,3 +1,5 @@
+//importing websocket modules
+import { io } from "../../index";
 import { RequestHandler } from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
@@ -414,17 +416,6 @@ export const approveOrder: RequestHandler = async (req, res, next) => {
           const currDate = new Date();
           const today = moment();
           const targetDate = moment(today.add(3, "days"));
-          console.log(
-            "the target day :",
-            today,
-            " == ",
-            moment(today.add(3, "days"))
-          );
-          console.log(
-            "the WEEKEND CHECK :",
-            targetDate.format("dddd") === "Sunday"
-          );
-
           order.expectedDeliveryDate = new Date(currDate);
           let duration: number = 3;
           if (
@@ -433,16 +424,8 @@ export const approveOrder: RequestHandler = async (req, res, next) => {
           ) {
             order.expectedDeliveryDate.setDate(currDate.getDate() + 5);
             duration = 5;
-            console.log(
-              "delivery date while on weekends :",
-              order.expectedDeliveryDate
-            );
           } else {
             order.expectedDeliveryDate.setDate(currDate.getDate() + 3);
-            console.log(
-              "delivery date while on WEEKDAYS :",
-              order.expectedDeliveryDate
-            );
           }
           await order?.save();
           //creating notification info
@@ -562,6 +545,25 @@ export const getUserById: RequestHandler = async (req, res, next) => {
     res.status(500).json({ message: "Internal server error." });
   }
 };
+
+export const notifyUser: RequestHandler = async (req, res, next) => {
+  try {
+    const { label, content } = req.body;
+    if (!label || !content) {
+      console.log("No label or content found in the request body.");
+      return res.status(400).json({ message: "Please provide all the fields." });
+    }
+    await dbQueries.createNotificationForOne(2, label, content);
+    io.emit("notifyClient", label+" "+content);
+
+    console.log("The user has been notified.");
+    return res.status(200).json({ message: "The user has been notified." });
+  } catch (error) {
+    console.error("Error in notifyUser function:", error);
+    return res.status(500).json({ message: "Internal server error." });
+  }
+};
+
 
 export const notifyAllUsers: RequestHandler = async (req, res, next) => {
   try {

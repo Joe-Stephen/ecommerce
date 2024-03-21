@@ -2,8 +2,6 @@ import { RequestHandler } from "express";
 
 //importing models
 import Notification from "./notificationModel";
-import User from "../user/userModel";
-import sequelize from "../config/db";
 
 //importing DB queries
 import DBQueries from "../services/dbQueries";

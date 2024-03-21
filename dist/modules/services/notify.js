@@ -13,13 +13,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.notifySelected = exports.notifyAll = exports.notify = void 0;
-const notificationModel_1 = __importDefault(require("../notifications/notificationModel"));
-const userModel_1 = __importDefault(require("../user/userModel"));
+//importing services
 const dbQueries_1 = __importDefault(require("./dbQueries"));
 const dbQueries = new dbQueries_1.default();
 //creating notification
 const notify = (userId, label, content) => __awaiter(void 0, void 0, void 0, function* () {
-    const notification = yield dbQueries.createNotificationInBulk(userId, label, content);
+    const notification = yield dbQueries.createNotificationForOne(userId, label, content);
     return notification;
 });
 exports.notify = notify;
@@ -46,14 +45,13 @@ const notifyAll = (label, content) => __awaiter(void 0, void 0, void 0, function
 exports.notifyAll = notifyAll;
 const notifySelected = (ids, label, content) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const selectedUsers = yield userModel_1.default.findAll({ where: { id: ids } });
-        console.log("the selected users :", selectedUsers);
+        const selectedUsers = yield dbQueries.findAllUsersInArray(ids);
         if (!selectedUsers) {
             console.log("No users found!");
             return null;
         }
         const promises = selectedUsers.forEach((user) => __awaiter(void 0, void 0, void 0, function* () {
-            yield notificationModel_1.default.create({ userId: user.id, label, content });
+            yield dbQueries.createNotificationForOne(user.id, label, content);
         }));
         if (promises) {
             yield Promise.all(promises);

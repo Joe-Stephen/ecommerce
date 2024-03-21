@@ -13,7 +13,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-const userModel_1 = __importDefault(require("../user/userModel"));
+//importing db queries
+const dbQueries_1 = __importDefault(require("../services/dbQueries"));
+const dbQueries = new dbQueries_1.default();
 const verifyUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         //get token from the header
@@ -22,7 +24,7 @@ const verifyUser = (req, res, next) => __awaiter(void 0, void 0, void 0, functio
         const decoded = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET);
         //get user from the token
         req.body.user = decoded;
-        const user = yield userModel_1.default.findOne({ where: { email: decoded.email } });
+        const user = yield dbQueries.findUserByEmail(decoded.email);
         if (!user) {
             console.log("No user found with this email address!");
             return res

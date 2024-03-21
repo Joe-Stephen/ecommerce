@@ -3,10 +3,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.io = void 0;
 const express_1 = __importDefault(require("express"));
 const userRouter_1 = __importDefault(require("./modules/router/userRouter"));
 const db_1 = __importDefault(require("./modules/config/db"));
 const dotenv_1 = __importDefault(require("dotenv"));
+//importing websocket modules
+const socket_io_1 = require("socket.io");
 //importing models
 const userModel_1 = __importDefault(require("./modules/user/userModel"));
 const imageModel_1 = __importDefault(require("./modules/product/imageModel"));
@@ -27,6 +30,11 @@ app.use(express_1.default.urlencoded({ extended: true }));
 // setting routers
 app.use("/", userRouter_1.default);
 app.use("/admin", adminRouter_1.default);
+//setting up server connection
+const server = app.listen(PORT, () => {
+    console.log(`Ecommerce Server is running on http://localhost:${PORT}`);
+});
+exports.io = new socket_io_1.Server(server);
 // associations
 //image associations
 imageModel_1.default.belongsTo(productModel_1.default, { foreignKey: "productId" });
@@ -60,6 +68,21 @@ db_1.default
     .catch((error) => {
     console.error("Error synchronizing models:", error);
 });
-app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+// setting up web socket connection
+// Handle incoming connections
+exports.io.on("connection", (socket) => {
+    console.log("Server 1: new web socket connection");
+    socket.emit("message", "Welcome to Server 1.");
+    socket.emit("message", "Your web socket connection with Server 1 is now active.");
+    socket.on("message", (message) => {
+        console.log("Server 1 received message:", message);
+    });
+    socket.on("disconnect", () => {
+        console.log("Server 1: web socket connection closed");
+    });
+    socket.on("close", () => {
+        console.log("Server 1 is closing the web socket connection");
+        socket.emit("message", "Your web socket connection with Server 1 is closing.");
+        socket.disconnect(true);
+    });
 });

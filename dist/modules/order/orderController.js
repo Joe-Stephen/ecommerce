@@ -14,18 +14,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.editOrder = exports.cancelOrder = exports.checkOut = void 0;
 const moment_1 = __importDefault(require("moment"));
-//model imports
-const userModel_1 = __importDefault(require("../user/userModel"));
-const productModel_1 = __importDefault(require("../product/productModel"));
-const cartModel_1 = __importDefault(require("../cart/cartModel"));
-const orderModel_1 = __importDefault(require("./orderModel"));
-const orderProductsModel_1 = __importDefault(require("./orderProductsModel"));
-const cancelOrderModel_1 = __importDefault(require("./cancelOrderModel"));
-const cartProductsModel_1 = __importDefault(require("../cart/cartProductsModel"));
+//importing DB queries
+const dbQueries_1 = __importDefault(require("../services/dbQueries"));
+const dbQueries = new dbQueries_1.default();
 const checkOut = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const date = (0, moment_1.default)();
-        console.log("date test i ", date.format("dddd"));
         const day = date.format("dddd");
         //checking if the order date is on weekends
         if (day === "Saturday" || day === "Sunday") {
@@ -41,30 +35,25 @@ const checkOut = (req, res, next) => __awaiter(void 0, void 0, void 0, function*
                 .status(400)
                 .json({ message: "No user found. User is not logged in." });
         }
-        const user = yield userModel_1.default.findOne({ where: { email: loggedInUser.email } });
+        //finding user by email
+        const user = yield dbQueries.findUserByEmail(loggedInUser.email);
         if (!user) {
             console.log("No user found. User is not logged in.");
             return res
                 .status(400)
                 .json({ message: "No user found. User is not logged in." });
         }
-        const pendingOrder = yield orderModel_1.default.findAll({
+        let queryOptions = {
             where: { userId: user.id, orderStatus: "To be approved" },
-        });
-        if (pendingOrder.length > 0) {
+        };
+        const pendingOrder = yield dbQueries.findAllOrdersWithOptions(queryOptions);
+        if (pendingOrder && pendingOrder.length > 0) {
             console.log("This user has a pending approval.");
             return res.status(400).json({
                 message: "Couldn't checkout products as you already have a pending approval.",
             });
         }
-        const userWithCart = yield userModel_1.default.findByPk(user.id, {
-            include: [
-                {
-                    model: cartModel_1.default,
-                    include: [productModel_1.default],
-                },
-            ],
-        });
+        const userWithCart = yield dbQueries.findUserWithCartByEmail(loggedInUser.email);
         if (!userWithCart) {
             console.log("No user with cart found.");
             return res.status(400).json({ message: "No user with cart found." });
@@ -79,24 +68,20 @@ const checkOut = (req, res, next) => __awaiter(void 0, void 0, void 0, function*
             grandTotal += product.subTotal;
             orderProducts.push(product.id);
         });
-        const orderObject = yield orderModel_1.default.create({
-            userId: user.id,
-            totalAmount: grandTotal,
-        });
+        const orderObject = yield dbQueries.createOrder(user.id, grandTotal);
+        if (!orderObject) {
+            console.log("Error in creating order.");
+            return res.status(500).json({ message: "Couldn't place the order." });
+        }
         const promises = productArray.map((product) => __awaiter(void 0, void 0, void 0, function* () {
-            yield orderProductsModel_1.default.create({
-                orderId: orderObject.id,
-                productId: product.id,
-                price: product.selling_price,
-                quantity: product.CartProducts.dataValues.quantity,
-            });
+            yield dbQueries.createOrderProduct(orderObject.id, product.id, product.selling_price, product.CartProducts.dataValues.quantity);
         }));
         if (promises) {
             yield Promise.all(promises);
             //removing user cart
-            yield cartModel_1.default.destroy({ where: { userId: user.id } });
+            yield dbQueries.destroyCart(user.id);
             //removing cart products
-            yield cartProductsModel_1.default.destroy({ where: { cartId: userWithCart.id } });
+            yield dbQueries.destroyAllCartProducts(userWithCart.id);
             return res.status(200).json({
                 message: "Order has been placed.",
                 data: orderObject,
@@ -121,8 +106,8 @@ const cancelOrder = (req, res, next) => __awaiter(void 0, void 0, void 0, functi
             console.log("No reason provided.");
             return res.status(400).json({ message: "Please provide your reason." });
         }
-        else {
-            const order = yield orderModel_1.default.findOne({ where: { id: orderId } });
+        if (typeof orderId === "string") {
+            const order = yield dbQueries.findOrderById(parseInt(orderId));
             if (!order) {
                 console.log("There is no order with this id.");
                 return res
@@ -130,33 +115,27 @@ const cancelOrder = (req, res, next) => __awaiter(void 0, void 0, void 0, functi
                     .json({ message: "There is no order with this id." });
             }
             if ((order === null || order === void 0 ? void 0 : order.orderStatus) === "To be approved") {
-                const cancelRequest = yield cancelOrderModel_1.default.create({
-                    orderId: orderId,
-                    reason: reason,
-                });
+                const cancelRequest = yield dbQueries.createCancelRequest(parseInt(orderId), reason);
                 order.orderStatus = "Cancelled";
                 yield order.save();
                 console.log("Cancel request has been submitted.");
                 //restoring cart
-                console.log("the order :", order);
-                const orderProducts = yield orderProductsModel_1.default.findAll({
-                    where: { orderId: order.id },
-                });
+                const orderProducts = yield dbQueries.findAllOrderProducts(order.id);
                 if (!orderProducts) {
                     console.log("No order products found in the order.");
                     return res
                         .status(400)
                         .json({ message: "No order products found in the order." });
                 }
-                console.log("the order products is :", orderProducts);
-                const userCart = yield cartModel_1.default.create({ userId: order.userId });
+                //finding user cart
+                let userCart = yield dbQueries.findCartByUserId(order.userId);
+                if (!userCart) {
+                    //creating user cart
+                    userCart = yield dbQueries.createCart(order.userId);
+                }
                 //adding products back to cart
                 const promises = orderProducts.map((product) => __awaiter(void 0, void 0, void 0, function* () {
-                    yield cartProductsModel_1.default.create({
-                        cartId: userCart.id,
-                        productId: product.productId,
-                        quantity: product.quantity,
-                    });
+                    yield dbQueries.createCartProduct(userCart.id, product.productId, product.quantity);
                 }));
                 if (promises) {
                     yield Promise.all(promises);
@@ -197,95 +176,90 @@ exports.cancelOrder = cancelOrder;
 const editOrder = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { orderId } = req.query;
-        const { productIds, action } = req.body;
-        if (!orderId || !productIds || !action) {
-            console.log("No order/productId/quantity provided in the req.query.");
-            return res
-                .status(400)
-                .json({ message: "Please provide all the details." });
-        }
-        const order = yield orderModel_1.default.findOne({ where: { id: orderId } });
-        if (!order) {
-            console.log("No order found with this id.");
-            return res.status(400).json({ message: "No order found with this id." });
-        }
-        if (order.orderStatus !== "To be approved") {
-            console.log("This order cannot be edited.");
-            return res.status(400).json({ message: "This order cannot be edited." });
-        }
-        else {
-            let amount = 0;
-            const products = yield productModel_1.default.findAll({ where: { id: productIds } });
-            if (action === "add") {
-                if (!products || products.length === 0) {
-                    console.log("No products specified for addition.");
-                    return res
-                        .status(400)
-                        .json({ message: "Please specify products for addition." });
-                }
-                const promises = products.map((product) => __awaiter(void 0, void 0, void 0, function* () {
-                    amount += product.selling_price;
-                    const existingProduct = yield orderProductsModel_1.default.findOne({
-                        where: { productId: product.id, orderId: orderId },
-                    });
-                    if (existingProduct) {
-                        yield orderProductsModel_1.default.update({ quantity: existingProduct.quantity + 1 }, { where: { id: existingProduct.id } });
-                    }
-                    else {
-                        yield orderProductsModel_1.default.create({
-                            orderId: orderId,
-                            productId: product.id,
-                            price: product.selling_price,
-                            quantity: 1,
-                        });
-                    }
-                }));
-                yield Promise.all(promises);
-                console.log("New products has been added to order products.");
-                order.totalAmount += amount;
-                yield order.save();
-                console.log("Order total amount has been updated.");
-                console.log("Order has been edited.");
-                return res.status(200).json({
-                    message: "Order has been edited.",
-                });
+        if (typeof orderId === "string") {
+            const { productIds, action } = req.body;
+            if (!orderId || !productIds || !action) {
+                console.log("No order/productId/quantity provided in the req.query.");
+                return res
+                    .status(400)
+                    .json({ message: "Please provide all the details." });
             }
-            else if (action === "remove") {
-                if (!products || products.length === 0) {
-                    console.log("No products specified for removal.");
-                    return res
-                        .status(400)
-                        .json({ message: "Please specify products for removal." });
-                }
-                const promises = products.map((product) => __awaiter(void 0, void 0, void 0, function* () {
-                    const existingProduct = yield orderProductsModel_1.default.findOne({
-                        where: { productId: product.id, orderId: orderId },
-                    });
-                    if (existingProduct) {
-                        amount = amount + existingProduct.price;
-                        if (existingProduct.quantity > 1) {
-                            existingProduct.quantity -= 1;
-                            yield existingProduct.save();
+            const order = yield dbQueries.findOrderById(parseInt(orderId));
+            if (!order) {
+                console.log("No order found with this id.");
+                return res
+                    .status(400)
+                    .json({ message: "No order found with this id." });
+            }
+            if (order.orderStatus !== "To be approved") {
+                console.log("This order cannot be edited.");
+                return res
+                    .status(400)
+                    .json({ message: "This order cannot be edited." });
+            }
+            else {
+                let amount = 0;
+                const products = yield dbQueries.findAllProductsInArray(productIds);
+                if (action === "add") {
+                    if (!products || products.length === 0) {
+                        console.log("No products specified for addition.");
+                        return res
+                            .status(400)
+                            .json({ message: "Please specify products for addition." });
+                    }
+                    const promises = products.map((product) => __awaiter(void 0, void 0, void 0, function* () {
+                        amount += product.selling_price;
+                        const existingProduct = yield dbQueries.findOrderProductByProductAndOrderIds(product.id, parseInt(orderId));
+                        if (existingProduct) {
+                            yield dbQueries.updateOrderProductQty(existingProduct.quantity + 1, existingProduct.id);
                         }
                         else {
-                            yield orderProductsModel_1.default.destroy({
-                                where: { id: existingProduct.id },
-                            });
+                            yield dbQueries.createOrderProduct(parseInt(orderId), product.id, product.selling_price, 1);
                         }
+                    }));
+                    yield Promise.all(promises);
+                    console.log("New products has been added to order products.");
+                    order.totalAmount += amount;
+                    yield order.save();
+                    console.log("Order total amount has been updated.");
+                    console.log("Order has been edited.");
+                    return res.status(200).json({
+                        message: "Order has been edited.",
+                    });
+                }
+                else if (action === "remove") {
+                    if (!products || products.length === 0) {
+                        console.log("No products specified for removal.");
+                        return res
+                            .status(400)
+                            .json({ message: "Please specify products for removal." });
                     }
-                    else {
-                        console.log(`${product.name} is not in the order.`);
-                    }
-                }));
-                yield Promise.all(promises);
-                console.log("The products has been removed from the order.");
-                order.totalAmount -= amount;
-                yield order.save();
-                console.log("Order total amount has been updated.");
-                console.log("Order has been edited.");
-                return res.status(200).json({
-                    message: "Order has been edited.",
-                });
+                    const promises = products.map((product) => __awaiter(void 0, void 0, void 0, function* () {
+                        const existingProduct = yield dbQueries.findOrderProductByProductAndOrderIds(product.id, parseInt(orderId));
+                        if (existingProduct) {
+                            amount = amount + existingProduct.price;
+                            if (existingProduct.quantity > 1) {
+                                existingProduct.quantity -= 1;
+                                yield existingProduct.save();
+                            }
+                            else {
+                                yield dbQueries.destroyOrdertProduct(existingProduct.id);
+                            }
+                        }
+                        else {
+                            console.log(`${product.name} is not in the order.`);
+                        }
+                    }));
+                    yield Promise.all(promises);
+                    console.log("The products has been removed from the order.");
+                    order.totalAmount -= amount;
+                    yield order.save();
+                    console.log("Order total amount has been updated.");
+                    console.log("Order has been edited.");
+                    return res.status(200).json({
+                        message: "Order has been edited.",
+                    });
+                }
             }
         }
     }
@@ -295,77 +269,3 @@ const editOrder = (req, res, next) => __awaiter(void 0, void 0, void 0, function
     }
 });
 exports.editOrder = editOrder;
-// export const editOrder: RequestHandler = async (req, res, next) => {
-//   try {
-//     const { orderId } = req.query;
-//     const { productIds, action } = req.body;
-//     if (!orderId || !productIds || !action) {
-//       console.log("No order/productId/action provided in the request.");
-//       return res
-//         .status(400)
-//         .json({ message: "Please provide all the details." });
-//     }
-//     const order = await Order.findOne({ where: { id: orderId } });
-//     if (!order) {
-//       console.log("No order found with this id.");
-//       return res.status(400).json({ message: "No order found with this id." });
-//     }
-//     if (order.orderStatus !== "To be approved") {
-//       console.log("This order cannot be edited.");
-//       return res.status(400).json({ message: "This order cannot be edited." });
-//     }
-//     let amount: number = 0;
-//     const products = await Product.findAll({ where: { id: productIds } });
-//     if (!products || products.length === 0) {
-//       console.log("No products specified for action.");
-//       return res.status(400).json({ message: "Please specify products." });
-//     }
-//     const promises: Promise<any>[] = products.map(async (product: any) => {
-//       const existingProduct = await OrderProducts.findOne({
-//         where: { productId: product.id, orderId: orderId },
-//       });
-//       if (action === "add") {
-//         amount += product.selling_price;
-//         if (existingProduct) {
-//           await OrderProducts.update(
-//             { quantity: existingProduct.quantity + 1 },
-//             { where: { id: existingProduct.id } }
-//           );
-//         } else {
-//           await OrderProducts.create({
-//             orderId: orderId,
-//             productId: product.id,
-//             price: product.selling_price,
-//             quantity: 1,
-//           });
-//         }
-//       } else if (action === "remove") {
-//         if (existingProduct) {
-//           amount += existingProduct.price;
-//           if (existingProduct.quantity > 1) {
-//             existingProduct.quantity -= 1;
-//             await existingProduct.save();
-//           } else {
-//             await OrderProducts.destroy({
-//               where: { id: existingProduct.id },
-//             });
-//           }
-//         } else {
-//           console.log(`${product.name} is not in the order.`);
-//         }
-//       }
-//     });
-//     await Promise.all(promises);
-//     if (action === "add") {
-//       order.totalAmount += amount;
-//     } else if (action === "remove") {
-//       order.totalAmount -= amount;
-//     }
-//     await order.save();
-//     console.log("Order has been edited.");
-//     return res.status(200).json({ message: "Order has been edited." });
-//   } catch (error) {
-//     console.error("An error occurred in editOrder function:", error);
-//     return res.status(500).json({ message: "Couldn't edit the order." });
-//   }
-// };
