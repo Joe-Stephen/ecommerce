@@ -13,7 +13,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.notifySelectedUsers = exports.notifyAllUsers = exports.notifyUser = exports.getUserById = exports.approveOrder = exports.getAllOrders = exports.getAllUsers = exports.deleteUser = exports.toggleUserAccess = exports.updateProduct = exports.addProduct = exports.loginAdmin = void 0;
-//importing websocket modules
 const index_1 = require("../../index");
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
@@ -421,6 +420,8 @@ const approveOrder = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
                     const content = `Your order with id:${order.id} has been approved by admin.`;
                     //calling notify service
                     yield (0, notify_1.notify)(userId, label, content);
+                    //sending notification to user via socket.io connection
+                    index_1.io.emit("notifyClient", label + " " + content);
                     //using mail service to notify the user about the status change
                     let productInfo = "";
                     order === null || order === void 0 ? void 0 : order.dataValues.orderProducts.forEach((item) => {

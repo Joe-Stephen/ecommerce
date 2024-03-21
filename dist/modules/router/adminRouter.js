@@ -13,7 +13,7 @@ const multerMiddleware_1 = __importDefault(require("../admin/multerMiddleware"))
 const adminAuthentication_1 = __importDefault(require("../admin/adminAuthentication"));
 const notificationController_1 = require("../notifications/notificationController");
 //admin functionalities
-adminRouter.post("/notify", adminController_1.notifyUser);
+adminRouter.post("/notify", adminAuthentication_1.default, adminController_1.notifyUser);
 adminRouter.post("/login", adminController_1.loginAdmin);
 adminRouter.patch("/resetPassword", adminAuthentication_1.default, userController_1.resetPassword);
 adminRouter.post("/product", adminAuthentication_1.default, multerMiddleware_1.default.array("images"), adminController_1.addProduct);

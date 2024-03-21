@@ -1,4 +1,3 @@
-//importing websocket modules
 import { io } from "../../index";
 import { RequestHandler } from "express";
 import bcrypt from "bcrypt";
@@ -434,6 +433,8 @@ export const approveOrder: RequestHandler = async (req, res, next) => {
           const content: string = `Your order with id:${order.id} has been approved by admin.`;
           //calling notify service
           await notify(userId, label, content);
+          //sending notification to user via socket.io connection
+          io.emit("notifyClient", label+" "+content);
           //using mail service to notify the user about the status change
           let productInfo: string = "";
           order?.dataValues.orderProducts.forEach((item: any) => {
