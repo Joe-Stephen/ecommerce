@@ -83,6 +83,7 @@ sequelize
 // Handle incoming connections
 io.on("connection", (socket) => {
   console.log("Server 1: new web socket connection");
+  console.log("Connection id :", socket.id);  
 
   socket.emit("message", "Welcome to Server 1.");
   socket.emit(

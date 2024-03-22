@@ -72,6 +72,7 @@ db_1.default
 // Handle incoming connections
 exports.io.on("connection", (socket) => {
     console.log("Server 1: new web socket connection");
+    console.log("Connection id :", socket.id);
     socket.emit("message", "Welcome to Server 1.");
     socket.emit("message", "Your web socket connection with Server 1 is now active.");
     socket.on("message", (message) => {
