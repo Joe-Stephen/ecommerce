@@ -3,6 +3,7 @@ import { Op } from "sequelize";
 import { generateOtp } from "../services/otpGenerator";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import redis from "../config/redis";
 
 //importing services
 import { sendMail } from "../services/sendMail";
@@ -49,6 +50,8 @@ export const createUser: RequestHandler = async (req, res, next) => {
       .status(500)
       .json({ message: "Error in the create user function." });
   }
+  //setting user login details in redis
+  redis.set(email, hashedPassword);
   return res
     .status(200)
     .json({ message: "User created successfully", data: user });
@@ -127,21 +130,30 @@ export const loginUser: RequestHandler = async (req, res, next) => {
         .status(400)
         .json({ message: "Please provide all the details." });
     }
-    const user: User | null | undefined = await dbQueries.findUserByEmail(
-      email
-    );
-    if (!user) {
+    // const user: User | null | undefined = await dbQueries.findUserByEmail(
+    //   email
+    // );
+    let userPassword!: string;
+    //accessing user data from redis
+    await redis.get(email, (err: Error, password: string) => {
+      if (err) {
+        console.error(
+          "Error happened while getting user data from redis :",
+          err
+        );
+      }
+      userPassword = password;
+    });
+    if (!userPassword) {
       console.log("No user found with this email!");
       return res
         .status(400)
         .json({ message: "No user found with this email!" });
     }
-    if (user && (await bcrypt.compare(password, user.password))) {
+    if (userPassword && (await bcrypt.compare(password, userPassword))) {
       const loggedInUser = {
-        id: user.id,
-        name: user.username,
-        email: user.email,
-        token: generateToken(user.email),
+        email: email,
+        token: generateToken(email),
       };
       console.log("User logged in successfully");
       return res

@@ -17,6 +17,7 @@ const sequelize_1 = require("sequelize");
 const otpGenerator_1 = require("../services/otpGenerator");
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const redis_1 = __importDefault(require("../config/redis"));
 //importing services
 const sendMail_1 = require("../services/sendMail");
 //importing DB queries
@@ -50,6 +51,8 @@ const createUser = (req, res, next) => __awaiter(void 0, void 0, void 0, functio
             .status(500)
             .json({ message: "Error in the create user function." });
     }
+    //setting user login details in redis
+    redis_1.default.set(email, hashedPassword);
     return res
         .status(200)
         .json({ message: "User created successfully", data: user });
@@ -131,19 +134,27 @@ const loginUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function
                 .status(400)
                 .json({ message: "Please provide all the details." });
         }
-        const user = yield dbQueries.findUserByEmail(email);
-        if (!user) {
+        // const user: User | null | undefined = await dbQueries.findUserByEmail(
+        //   email
+        // );
+        let userPassword;
+        //accessing user data from redis
+        yield redis_1.default.get(email, (err, password) => {
+            if (err) {
+                console.error("Error happened while getting user data from redis :", err);
+            }
+            userPassword = password;
+        });
+        if (!userPassword) {
             console.log("No user found with this email!");
             return res
                 .status(400)
                 .json({ message: "No user found with this email!" });
         }
-        if (user && (yield bcrypt_1.default.compare(password, user.password))) {
+        if (userPassword && (yield bcrypt_1.default.compare(password, userPassword))) {
             const loggedInUser = {
-                id: user.id,
-                name: user.username,
-                email: user.email,
-                token: generateToken(user.email),
+                email: email,
+                token: generateToken(email),
             };
             console.log("User logged in successfully");
             return res
