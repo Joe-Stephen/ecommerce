@@ -3,6 +3,7 @@ import { RequestHandler } from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { Op } from "sequelize";
+import redis from "../config/redis";
 import moment from "moment";
 
 //importing services
@@ -121,21 +122,28 @@ export const addProduct: RequestHandler = async (req, res, next) => {
         message: "An error happened while creating new product.",
       });
     }
+    //setting in redis
+    await redis.set(`product_${newProduct.id}`, JSON.stringify(newProduct));
+    const images: string[] = [];
     //uploading image files
     const promises = (req.files as File[] | undefined)?.map(
       async (file: any) => {
-        await Image.create({
+        const productImage = await Image.create({
           productId: newProduct.id,
           image: file.originalname,
         });
+        images.push(file.originalname);
       }
     );
-
+    
+    const finalProduct = { ...newProduct.toJSON(), images };
+    //setting in redis    
+    await redis.set(`product_${newProduct.id}`, JSON.stringify(finalProduct));
     if (promises) {
       await Promise.all(promises);
       res
         .status(200)
-        .json({ message: "Product added successfully", data: newProduct });
+        .json({ message: "Product added successfully", data: finalProduct });
     } else {
       console.log(
         "An error happened while creating the product: promises is null"
@@ -434,7 +442,7 @@ export const approveOrder: RequestHandler = async (req, res, next) => {
           //calling notify service
           await notify(userId, label, content);
           //sending notification to user via socket.io connection
-          io.emit("notifyClient", label+" "+content);
+          io.emit("notifyClient", label + " " + content);
           //using mail service to notify the user about the status change
           let productInfo: string = "";
           order?.dataValues.orderProducts.forEach((item: any) => {
@@ -552,10 +560,12 @@ export const notifyUser: RequestHandler = async (req, res, next) => {
     const { label, content } = req.body;
     if (!label || !content) {
       console.log("No label or content found in the request body.");
-      return res.status(400).json({ message: "Please provide all the fields." });
+      return res
+        .status(400)
+        .json({ message: "Please provide all the fields." });
     }
     await dbQueries.createNotificationForOne(2, label, content);
-    io.emit("notifyClient", label+" "+content);
+    io.emit("notifyClient", label + " " + content);
 
     console.log("The user has been notified.");
     return res.status(200).json({ message: "The user has been notified." });
@@ -564,7 +574,6 @@ export const notifyUser: RequestHandler = async (req, res, next) => {
     return res.status(500).json({ message: "Internal server error." });
   }
 };
-
 
 export const notifyAllUsers: RequestHandler = async (req, res, next) => {
   try {

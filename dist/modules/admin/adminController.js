@@ -17,6 +17,7 @@ const index_1 = require("../../index");
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const sequelize_1 = require("sequelize");
+const redis_1 = __importDefault(require("../config/redis"));
 const moment_1 = __importDefault(require("moment"));
 //importing services
 const sendMail_1 = require("../services/sendMail");
@@ -121,18 +122,25 @@ const addProduct = (req, res, next) => __awaiter(void 0, void 0, void 0, functio
                 message: "An error happened while creating new product.",
             });
         }
+        //setting in redis
+        yield redis_1.default.set(`product_${newProduct.id}`, JSON.stringify(newProduct));
+        const images = [];
         //uploading image files
         const promises = (_a = req.files) === null || _a === void 0 ? void 0 : _a.map((file) => __awaiter(void 0, void 0, void 0, function* () {
-            yield imageModel_1.default.create({
+            const productImage = yield imageModel_1.default.create({
                 productId: newProduct.id,
                 image: file.originalname,
             });
+            images.push(file.originalname);
         }));
+        const finalProduct = Object.assign(Object.assign({}, newProduct.toJSON()), { images });
+        //setting in redis    
+        yield redis_1.default.set(`product_${newProduct.id}`, JSON.stringify(finalProduct));
         if (promises) {
             yield Promise.all(promises);
             res
                 .status(200)
-                .json({ message: "Product added successfully", data: newProduct });
+                .json({ message: "Product added successfully", data: finalProduct });
         }
         else {
             console.log("An error happened while creating the product: promises is null");
@@ -537,7 +545,9 @@ const notifyUser = (req, res, next) => __awaiter(void 0, void 0, void 0, functio
         const { label, content } = req.body;
         if (!label || !content) {
             console.log("No label or content found in the request body.");
-            return res.status(400).json({ message: "Please provide all the fields." });
+            return res
+                .status(400)
+                .json({ message: "Please provide all the fields." });
         }
         yield dbQueries.createNotificationForOne(2, label, content);
         index_1.io.emit("notifyClient", label + " " + content);

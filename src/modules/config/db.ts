@@ -4,7 +4,8 @@ import { Sequelize } from "sequelize";
 const sequelize = new Sequelize("ecommerce", "root", "Joekkuttan@123", {
     dialect: "mysql",
     host: "localhost",
-    logging:console.log
+    // logging:console.log,
+    logging:false
   }
 );
 
